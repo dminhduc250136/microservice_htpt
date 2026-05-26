@@ -21,9 +21,8 @@ microservices) trên một máy mới — không cần đọc tài liệu nào k
 ## 2. Lấy source code
 
 ```bash
-git clone https://github.com/dminhduc250136/ptit_htpt.git
-cd ptit_htpt
-git checkout develop          # nhánh tích hợp mới nhất
+git clone https://github.com/dminhduc250136/microservice_htpt
+cd microservice_htpt
 ```
 
 ---
@@ -55,7 +54,6 @@ JWT_SECRET=dev-jwt-secret-key-minimum-32-characters-for-hs256-ok
 ```
 
 > Nếu không tạo `.env`, Docker vẫn chạy: `JWT_SECRET` rơi về giá trị dev mặc định,
-> còn `ANTHROPIC_API_KEY` rỗng (chatbot sẽ lỗi, phần còn lại bình thường).
 
 ---
 
@@ -92,7 +90,7 @@ Backend Spring Boot cần ~30–40s để khởi động sau khi container `Up`.
 | Dịch vụ | URL | Ghi chú |
 |---------|-----|---------|
 | **Frontend (web)** | http://localhost:3000 | Giao diện chính |
-| **API Gateway** | http://localhost:8080 | Cổng DUY NHẤT của backend (Phase 25) |
+| **API Gateway** | http://localhost:8080 | Cổng DUY NHẤT của backend |
 | **RabbitMQ Management UI** | http://localhost:15672 | Đăng nhập `guest` / `guest` |
 
 > 6 backend service **không** expose port ra host (Phase 25 — bảo mật). Chỉ truy
@@ -136,21 +134,8 @@ docker compose up -d --build <service>  # rebuild lại 1 service
 
 ---
 
-## 8. Chạy test E2E (tùy chọn)
 
-Cần Node >= 18 và stack đang chạy đầy đủ.
-
-```bash
-cd sources/frontend
-npm install
-npx playwright install chromium     # lần đầu — tải trình duyệt test
-npx playwright test                 # chạy toàn bộ
-npx playwright test 11-message-queue # chạy 1 nhóm test
-```
-
----
-
-## 9. Xử lý sự cố thường gặp
+## 8. Xử lý sự cố thường gặp
 
 | Triệu chứng | Nguyên nhân & cách xử lý |
 |-------------|--------------------------|
@@ -163,12 +148,11 @@ npx playwright test 11-message-queue # chạy 1 nhóm test
 
 ---
 
-## 10. Tóm tắt nhanh — copy & chạy
+## 9. Tóm tắt nhanh — copy & chạy
 
 ```bash
-git clone https://github.com/dminhduc250136/ptit_htpt.git
-cd ptit_htpt
-git checkout develop
+git clone https://github.com/dminhduc250136/microservice_htpt
+cd microservice_htpt
 cp .env.example .env          # (Windows: Copy-Item .env.example .env)
 docker compose up -d --build
 # chờ ~5-10 phút lần đầu, rồi mở http://localhost:3000
