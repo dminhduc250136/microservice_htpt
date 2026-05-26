@@ -1,0 +1,445 @@
+/* ============================================
+   HEADER / NAVIGATION
+   Design: Glassmorphism floating bar
+   - surface at 80% opacity with 24px backdrop blur
+   - No border, only ghost border at bottom
+   - Sticky positioning
+   ============================================ */
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--space-3) var(--space-4);
+  height: 72px;
+}
+
+/* --- Logo --- */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+/* Monogram "DA" — khối vuông bo góc với gradient thương hiệu */
+.logoMark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  background: var(--gradient-primary);
+  color: var(--on-primary);
+  font-family: var(--font-family-headline);
+  font-size: var(--text-title-md);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-tight);
+  transition: transform var(--transition-fast);
+}
+
+.logo:hover .logoMark {
+  transform: scale(1.05) rotate(-3deg);
+}
+
+/* Phần chữ — 2 dòng xếp dọc cho cân đối với monogram */
+.logoWordmark {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
+}
+
+.logoText {
+  font-family: var(--font-family-headline);
+  font-size: var(--text-label-md);
+  font-weight: var(--weight-medium);
+  color: var(--on-surface-variant);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+.logoAccent {
+  font-family: var(--font-family-headline);
+  font-size: var(--text-title-md);
+  font-weight: var(--weight-bold);
+  color: var(--on-surface);
+  letter-spacing: var(--tracking-tight);
+}
+
+/* Mobile: chỉ giữ monogram cho gọn */
+@media (max-width: 480px) {
+  .logoWordmark {
+    display: none;
+  }
+}
+
+/* --- Navigation --- */
+.nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+.navLink {
+  font-family: var(--font-family-body);
+  font-size: var(--text-body-md);
+  font-weight: var(--weight-medium);
+  color: var(--on-surface-variant);
+  text-decoration: none;
+  position: relative;
+  padding: var(--space-1) 0;
+  transition: color var(--transition-fast);
+}
+
+.navLink::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--gradient-primary);
+  border-radius: var(--radius-full);
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform var(--transition-base);
+}
+
+.navLink:hover {
+  color: var(--on-surface);
+}
+
+.navLink:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* --- Action Buttons --- */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.actionBtn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--on-surface-variant);
+  transition: all var(--transition-fast);
+  text-decoration: none;
+}
+
+.actionBtn:hover {
+  background-color: var(--surface-container);
+  color: var(--on-surface);
+}
+
+.cartBadge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--secondary-container);
+  color: var(--on-secondary);
+  font-size: 10px;
+  font-weight: var(--weight-bold);
+  border-radius: var(--radius-full);
+  padding: 0 4px;
+}
+
+/* --- Hamburger (Mobile) --- */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+}
+
+.hamburger span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: var(--on-surface);
+  border-radius: var(--radius-full);
+  transition: all var(--transition-base);
+}
+
+.hamburgerOpen span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.hamburgerOpen span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburgerOpen span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* --- Search Bar (cố định, luôn hiển thị giữa header) --- */
+.search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  max-width: 440px;
+  margin: 0 var(--space-4);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-full);
+  color: var(--on-surface-variant);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.search:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-container);
+}
+
+.searchIcon {
+  flex-shrink: 0;
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: var(--text-body-md);
+  font-family: var(--font-family-body);
+  color: var(--on-surface);
+}
+
+.searchInput::placeholder {
+  color: var(--outline);
+}
+
+/* Ẩn nút clear mặc định của <input type=search> cho gọn */
+.searchInput::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+.searchSubmit {
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-4);
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--gradient-primary);
+  color: var(--on-primary);
+  font-family: var(--font-family-body);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.searchSubmit:hover {
+  opacity: 0.9;
+}
+
+/* Thanh tìm kiếm trong menu mobile */
+.mobileSearch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-2);
+  background: var(--surface-container-low);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-full);
+  color: var(--on-surface-variant);
+}
+
+.mobileSearch:focus-within {
+  border-color: var(--primary);
+}
+
+/* --- Mobile Overlay --- */
+.mobileOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  top: 72px;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 99;
+  animation: fadeIn var(--transition-fast) ease;
+}
+
+.mobileMenu {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-container-lowest);
+  padding: var(--space-4);
+  gap: var(--space-1);
+  box-shadow: var(--shadow-xl);
+}
+
+.mobileLink {
+  font-family: var(--font-family-body);
+  font-size: var(--text-title-md);
+  font-weight: var(--weight-medium);
+  color: var(--on-surface);
+  text-decoration: none;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  transition: background-color var(--transition-fast);
+}
+
+.mobileLink:hover {
+  background-color: var(--surface-container-low);
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+  .nav {
+    display: none;
+  }
+
+  /* Thanh search giữa header ẩn ở mobile — đã có trong mobile menu */
+  .search {
+    display: none;
+  }
+
+  .hamburger {
+    display: flex;
+  }
+
+  .mobileOverlay {
+    display: block;
+  }
+}
+
+/* --- User Menu Dropdown --- */
+.userMenu { position: relative; }
+
+.userBtn {
+  display: flex;
+  align-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  justify-content: center;
+}
+
+.userAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: var(--weight-bold);
+  font-family: var(--font-family-body);
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 210px;
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  z-index: 200;
+  animation: fadeIn var(--transition-fast) ease;
+}
+
+.dropdownUser {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.dropdownName {
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-body-md);
+  color: var(--on-surface);
+  margin: 0;
+}
+
+.dropdownEmail {
+  font-size: var(--text-body-sm);
+  color: var(--on-surface-variant);
+  margin: 2px 0 0;
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-body-md);
+  color: var(--on-surface-variant);
+  text-decoration: none;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-family-body);
+  transition: background-color var(--transition-fast);
+}
+
+.dropdownItem:hover {
+  background-color: var(--surface-container-low);
+  color: var(--on-surface);
+}
+
+.dropdownItemDanger { color: var(--error); }
+.dropdownItemDanger:hover {
+  background-color: color-mix(in srgb, var(--error) 10%, transparent);
+  color: var(--error);
+}
+
+.dropdownDivider {
+  height: 1px;
+  background: var(--glass-border);
+  margin: var(--space-1) 0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

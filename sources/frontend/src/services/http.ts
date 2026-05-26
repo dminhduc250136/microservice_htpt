@@ -1,0 +1,198 @@
+/**
+ * Typed HTTP wrapper — reads accessToken from localStorage, attaches
+ * Authorization: Bearer, auto-unwraps ApiResponse envelope, throws ApiError
+ * on failure. No auto-retry on any method (D-10: mutations must not duplicate;
+ * GET retries are driven by the UI RetrySection).
+ *
+ * Source: 04-RESEARCH.md §Pattern 1. Mitigations in this module:
+ * - T-04-03 (open redirect via returnTo): 401 handler validates pathname starts with '/'
+ *   AND not '//' before encoding it into the /login redirect.
+ * - T-04-04 (stale token): 401 branch calls clearTokens() before redirect.
+ *
+ * BUG-FIX (login-redirect-loop): Auth endpoints (/auth/login, /auth/register) intentionally
+ * return 401 for bad credentials — they must NOT trigger the "session expired" redirect because
+ * the caller (login page) handles the 401 itself to show an error banner. Only non-auth 401s
+ * (i.e. stale tokens on protected endpoints) should redirect to /login.
+ *
+ * BUG-FIX (login-success-redirect-loop): Khi user đang ở /login hoặc /register mà có
+ * 401 từ endpoint khác (cart/profile/chat...), KHÔNG encode pathname thành returnTo —
+ * nếu không sẽ tạo URL `/login?returnTo=%2Flogin` và sau khi auth thành công login page
+ * sẽ replace về chính nó, gây vòng lặp.
+ *
+ * BUG-FIX (login-success-redirect-loop, regression sau 302e2a1): Khi đã ở /login|/register,
+ * KHÔNG thực hiện hard navigation `window.location.href` nữa — chỉ clearTokens. Trang login
+ * tự xử lý điều hướng sau khi `await authLogin(...)` hoàn tất. Hard nav trước đây đè lên
+ * `router.replace('/')` đang chạy, khiến user bị giữ lại ở /login dù đã đăng nhập đúng.
+ */
+
+import { ApiError, type FieldError } from './errors';
+import { getAccessToken, clearTokens } from './token';
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8080';
+
+// Paths whose 401 responses are intentional credential rejections — callers handle them
+// directly. Do NOT redirect to /login for these paths (that would create an infinite loop
+// when the user is already on /login and enters wrong credentials).
+const AUTH_PATHS_NO_REDIRECT = [
+  '/api/users/auth/login',
+  '/api/users/auth/register',
+];
+
+// Pathname prefixes mà KHÔNG nên trở thành giá trị returnTo (tránh self-loop sau login).
+const AUTH_PAGE_PATHS = ['/login', '/register'];
+
+function isAuthPagePath(pathname: string): boolean {
+  const lower = pathname.toLowerCase();
+  return AUTH_PAGE_PATHS.some(
+    (p) => lower === p || lower.startsWith(`${p}/`) || lower.startsWith(`${p}?`),
+  );
+}
+
+interface ApiEnvelope<T> {
+  timestamp?: string;
+  status?: number;
+  message?: string;
+  data: T;
+}
+
+interface ApiErrorBody {
+  status: number;
+  error?: string;
+  message: string;
+  code: string;
+  path?: string;
+  traceId?: string;
+  fieldErrors?: FieldError[];
+  details?: Record<string, unknown>;
+}
+
+async function request<T>(
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+  path: string,
+  body?: unknown,
+  extraHeaders?: Record<string, string>,
+): Promise<T> {
+  const token = getAccessToken();
+  const headers: Record<string, string> = {
+    'Accept': 'application/json',
+  };
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (extraHeaders) {
+    for (const [k, v] of Object.entries(extraHeaders)) {
+      // Skip undefined/empty so callers can pass `userId ? { 'X-User-Id': userId } : undefined`
+      if (v) headers[k] = v;
+    }
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+      credentials: 'omit',       // token is in header, not cookie
+    });
+  } catch {
+    // Classify as INTERNAL_ERROR for the dispatcher; no retry for mutations (D-10).
+    throw new ApiError('INTERNAL_ERROR', 0, 'Network error', [], undefined, path);
+  }
+
+  const text = await res.text();
+  // WR-02: wrap JSON.parse in try/catch — non-JSON 5xx (e.g. HTML error page from
+  // gateway/Nginx) would otherwise throw SyntaxError and bypass the dispatcher
+  // contract. Normalize to ApiError('INTERNAL_ERROR', ...) on parse failure for
+  // !res.ok; for OK responses with malformed body, fall back to null data.
+  let parsed: unknown = null;
+  if (text) {
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      if (!res.ok) {
+        throw new ApiError(
+          'INTERNAL_ERROR',
+          res.status,
+          `Request failed (${res.status})`,
+          [],
+          undefined,
+          path,
+        );
+      }
+      parsed = null;
+    }
+  }
+
+  if (res.ok) {
+    // Success envelope: { timestamp, status, message, data }
+    // If data is undefined (e.g., 204), return undefined as T.
+    return (parsed as ApiEnvelope<T> | null)?.data as T;
+  }
+
+  // Failure envelope (identical keys on service-origin and gateway-origin per Phase 3 D-05..D-07).
+  // BUG-FIX (add-cart-409-shows-success): Backend wraps the error body inside `data`
+  // (e.g. { timestamp, status, message: "Conflict", data: { code, message, items, ... } }).
+  // Trước đây lấy `parsed` ở root → `err.code` undefined → ApiError fallback 'INTERNAL_ERROR'
+  // và mất `details.items` (STOCK_SHORTAGE). Ưu tiên `parsed.data` nếu có shape error,
+  // fallback root để tương thích trường hợp backend không bọc envelope.
+  const root = (parsed ?? {}) as Partial<ApiErrorBody> & { data?: Partial<ApiErrorBody> };
+  const inner = (root.data && typeof root.data === 'object' ? root.data : undefined) as Partial<ApiErrorBody> | undefined;
+  const err: Partial<ApiErrorBody> = {
+    code: inner?.code ?? root.code,
+    status: inner?.status ?? root.status,
+    message: inner?.message ?? root.message,
+    fieldErrors: inner?.fieldErrors ?? root.fieldErrors,
+    traceId: inner?.traceId ?? root.traceId,
+    path: inner?.path ?? root.path,
+    details: inner ?? root.details,
+  };
+  // Domain-specific: backend trả `domainCode` (vd STOCK_SHORTAGE) trong data — promote
+  // lên `code` để FE switch theo nghiệp vụ thay vì code HTTP chung.
+  const domainCode = (inner as { domainCode?: string } | undefined)?.domainCode;
+  if (domainCode) err.code = domainCode;
+
+  // Silent 401: clear tokens and redirect to /login.
+  // Exception: auth endpoints (login/register) intentionally return 401 for bad credentials —
+  // their callers handle the ApiError to display an error banner. Redirecting here would
+  // produce GET /login?returnTo=%2Flogin (infinite loop) because pathname IS /login.
+  //
+  // Phase 25 (gateway JWT edge auth): API Gateway nay tu verify JWT va tra 401 voi
+  // code AUTH_TOKEN_MISSING / AUTH_TOKEN_INVALID / AUTH_TOKEN_EXPIRED. Ca 3 deu duoc
+  // xu ly chung o nhanh nay — clearTokens + redirect /login. Token het han (AUTH_TOKEN_EXPIRED)
+  // khong can UX rieng o MVP: user dang nhap lai la co token moi.
+  if (res.status === 401 && !AUTH_PATHS_NO_REDIRECT.includes(path)) {
+    clearTokens();
+    if (typeof window !== 'undefined') {
+      const pathname = window.location.pathname;
+      // BUG-FIX (login-success-redirect-loop, regression): Nếu user đang ở /login|/register,
+      // CHỈ clearTokens — KHÔNG hard-navigate. Trang login đang chạy `await authLogin(...)`
+      // và sẽ tự `router.replace(...)` sau khi xử lý. Hard nav ở đây sẽ đè lên router.replace,
+      // khiến user kẹt ở /login dù đăng nhập thành công.
+      if (!isAuthPagePath(pathname)) {
+        // Open-redirect hardening (T-04-03): validate pathname is a local relative path.
+        // Reject protocol-relative ('//evil.com') and absolute URLs.
+        if (pathname.startsWith('/') && !pathname.startsWith('//')) {
+          const returnTo = encodeURIComponent(pathname);
+          window.location.href = `/login?returnTo=${returnTo}`;
+        } else {
+          window.location.href = `/login`;
+        }
+      }
+    }
+  }
+
+  throw new ApiError(
+    err.code ?? 'INTERNAL_ERROR',
+    err.status ?? res.status,
+    err.message ?? `Request failed (${res.status})`,
+    err.fieldErrors ?? [],
+    err.traceId,
+    err.path,
+    err.details,
+  );
+}
+
+export const httpGet    = <T>(path: string, extraHeaders?: Record<string, string>) => request<T>('GET', path, undefined, extraHeaders);
+export const httpPost   = <T>(path: string, body?: unknown, extraHeaders?: Record<string, string>) => request<T>('POST', path, body, extraHeaders);
+export const httpPut    = <T>(path: string, body?: unknown, extraHeaders?: Record<string, string>) => request<T>('PUT', path, body, extraHeaders);
+export const httpPatch  = <T>(path: string, body?: unknown, extraHeaders?: Record<string, string>) => request<T>('PATCH', path, body, extraHeaders);
+export const httpDelete = <T>(path: string, extraHeaders?: Record<string, string>) => request<T>('DELETE', path, undefined, extraHeaders);

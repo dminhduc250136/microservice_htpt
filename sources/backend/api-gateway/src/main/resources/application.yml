@@ -1,0 +1,263 @@
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      globalcors:
+        corsConfigurations:
+          "[/**]":
+            allowedOrigins:
+              - "http://localhost:3000"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - PATCH
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+      routes:
+        # user-service auth: /api/users/auth → /auth (must come before /api/users/**)
+        - id: user-service-auth-base
+          uri: http://user-service:8080
+          predicates:
+            - Path=/api/users/auth
+          filters:
+            - RewritePath=/api/users/auth, /auth
+        - id: user-service-auth
+          uri: http://user-service:8080
+          predicates:
+            - Path=/api/users/auth/**
+          filters:
+            - RewritePath=/api/users/auth/(?<seg>.*), /auth/${seg}
+
+        # user-service admin: /api/users/admin → /admin/users
+        - id: user-service-admin-base
+          uri: http://user-service:8080
+          predicates:
+            - Path=/api/users/admin
+          filters:
+            - RewritePath=/api/users/admin, /admin/users
+        - id: user-service-admin
+          uri: http://user-service:8080
+          predicates:
+            - Path=/api/users/admin/**
+          filters:
+            - RewritePath=/api/users/admin/(?<seg>.*), /admin/users/${seg}
+
+        # user-service me: /api/users/me/** → /users/me/** (PHẢI đứng TRƯỚC user-service-base
+        # để /api/users/me/password KHÔNG match catch-all /api/users/{id} với id="me/password".
+        # Phase 10: GET/PATCH /api/users/me cho profile editing — đã triển khai.
+        # Phase 11: /api/users/me/addresses/** → /users/me/addresses/** qua route user-service-me
+        #   (seg capture group: /api/users/me/(?<seg>.*) → seg=addresses/123 → /users/me/addresses/123)
+        #   AddressController @RequestMapping("/users/me/addresses") match đúng.
+        #   KHÔNG cần route riêng user-service-me-addresses vì user-service-me/** đã bao phủ.
+        - id: user-service-me-base
+          uri: http://user-service:8080
+          predicates:
+            - Path=/api/users/me
+          filters:
+            - RewritePath=/api/users/me, /users/me
+        - id: user-service-me
+          uri: http://user-service:8080
+          predicates:
+            - Path=/api/users/me/**
+          filters:
+            - RewritePath=/api/users/me/(?<seg>.*), /users/me/${seg}
+
+        # user-service: /api/users -> /users, /api/users/{id} -> /users/{id}
+        - id: user-service-base
+          uri: http://user-service:8080
+          predicates:
+            - Path=/api/users
+          filters:
+            - RewritePath=/api/users, /users
+        - id: user-service
+          uri: http://user-service:8080
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - RewritePath=/api/users/(?<seg>.*), /users/${seg}
+
+        # product-service admin: /api/products/admin → /admin/products
+        - id: product-service-admin-base
+          uri: http://product-service:8080
+          predicates:
+            - Path=/api/products/admin
+          filters:
+            - RewritePath=/api/products/admin, /admin/products
+        - id: product-service-admin
+          uri: http://product-service:8080
+          predicates:
+            - Path=/api/products/admin/**
+          filters:
+            - RewritePath=/api/products/admin/(?<seg>.*), /admin/products/${seg}
+
+        # product-service: /api/products -> /products, /api/products/{id} -> /products/{id}
+        - id: product-service-base
+          uri: http://product-service:8080
+          predicates:
+            - Path=/api/products
+          filters:
+            - RewritePath=/api/products, /products
+        - id: product-service
+          uri: http://product-service:8080
+          predicates:
+            - Path=/api/products/**
+          filters:
+            - RewritePath=/api/products/(?<seg>.*), /products/${seg}
+
+        # order-service coupons admin: /api/orders/admin/coupons → /admin/coupons (D-15)
+        - id: order-service-admin-coupons-base
+          uri: http://order-service:8080
+          predicates:
+            - Path=/api/orders/admin/coupons
+          filters:
+            - RewritePath=/api/orders/admin/coupons, /admin/coupons
+        - id: order-service-admin-coupons
+          uri: http://order-service:8080
+          predicates:
+            - Path=/api/orders/admin/coupons/**
+          filters:
+            - RewritePath=/api/orders/admin/coupons/(?<seg>.*), /admin/coupons/${seg}
+
+        # order-service coupons user preview: /api/orders/coupons → /orders/coupons (D-15)
+        - id: order-service-coupons-user-base
+          uri: http://order-service:8080
+          predicates:
+            - Path=/api/orders/coupons
+          filters:
+            - RewritePath=/api/orders/coupons, /orders/coupons
+        - id: order-service-coupons-user
+          uri: http://order-service:8080
+          predicates:
+            - Path=/api/orders/coupons/**
+          filters:
+            - RewritePath=/api/orders/coupons/(?<seg>.*), /orders/coupons/${seg}
+
+        # order-service admin: /api/orders/admin → /admin/orders
+        - id: order-service-admin-base
+          uri: http://order-service:8080
+          predicates:
+            - Path=/api/orders/admin
+          filters:
+            - RewritePath=/api/orders/admin, /admin/orders
+        - id: order-service-admin
+          uri: http://order-service:8080
+          predicates:
+            - Path=/api/orders/admin/**
+          filters:
+            - RewritePath=/api/orders/admin/(?<seg>.*), /admin/orders/${seg}
+
+        # order-service
+        - id: order-service-base
+          uri: http://order-service:8080
+          predicates:
+            - Path=/api/orders
+          filters:
+            - RewritePath=/api/orders, /orders
+        - id: order-service
+          uri: http://order-service:8080
+          predicates:
+            - Path=/api/orders/**
+          filters:
+            - RewritePath=/api/orders/(?<seg>.*), /orders/${seg}
+
+        # payment-service
+        - id: payment-service-base
+          uri: http://payment-service:8080
+          predicates:
+            - Path=/api/payments
+          filters:
+            - RewritePath=/api/payments, /payments
+        - id: payment-service
+          uri: http://payment-service:8080
+          predicates:
+            - Path=/api/payments/**
+          filters:
+            - RewritePath=/api/payments/(?<seg>.*), /payments/${seg}
+
+        # inventory-service
+        - id: inventory-service-base
+          uri: http://inventory-service:8080
+          predicates:
+            - Path=/api/inventory
+          filters:
+            - RewritePath=/api/inventory, /inventory
+        - id: inventory-service
+          uri: http://inventory-service:8080
+          predicates:
+            - Path=/api/inventory/**
+          filters:
+            - RewritePath=/api/inventory/(?<seg>.*), /inventory/${seg}
+
+        # notification-service
+        - id: notification-service-base
+          uri: http://notification-service:8080
+          predicates:
+            - Path=/api/notifications
+          filters:
+            - RewritePath=/api/notifications, /notifications
+        - id: notification-service
+          uri: http://notification-service:8080
+          predicates:
+            - Path=/api/notifications/**
+          filters:
+            - RewritePath=/api/notifications/(?<seg>.*), /notifications/${seg}
+
+# Phase 25: edge authentication — gateway verify JWT, strip header client,
+# inject X-User-Id tin cậy từ claim sub. Allow-list config-driven.
+app:
+  jwt:
+    # Cùng JWT_SECRET với user-service. Production BẮT BUỘC override env,
+    # KHÔNG dùng giá trị dev mặc định bên dưới.
+    secret: ${JWT_SECRET:dev-jwt-secret-key-minimum-32-characters-for-hs256-ok}
+  auth:
+    # Endpoint public — bypass JWT. Nếu có Bearer hợp lệ vẫn parse + inject;
+    # Bearer sai/expired vẫn bị 401 (không silently pass).
+    public-endpoints:
+      - { method: POST, pattern: "/api/users/auth/login" }
+      - { method: POST, pattern: "/api/users/auth/register" }
+      # Phase 27 MAIL-02: verify email + forgot/reset password đều public
+      - { method: GET, pattern: "/api/users/auth/verify-email" }
+      - { method: POST, pattern: "/api/users/auth/password/forgot" }
+      - { method: POST, pattern: "/api/users/auth/password/reset" }
+      - { method: GET, pattern: "/api/products" }
+      - { method: GET, pattern: "/api/products/**" }
+      - { method: OPTIONS, pattern: "/**" }
+      - { method: GET, pattern: "/actuator/health" }
+      # Phase 26.1: MoMo IPN/return — bên ngoài không gửi JWT, bảo mật qua HMAC SHA256 (D-14)
+      - { method: POST, pattern: "/api/payments/momo/ipn" }
+      - { method: GET,  pattern: "/api/payments/momo/return" }
+    # Endpoint yêu cầu role ADMIN — reject 403 nếu roles không chứa ADMIN.
+    admin-path-patterns:
+      - "/api/*/admin/**"
+      - "/api/admin/**"
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: users
+        url: /api/users/v3/api-docs
+      - name: products
+        url: /api/products/v3/api-docs
+      - name: orders
+        url: /api/orders/v3/api-docs
+      - name: payments
+        url: /api/payments/v3/api-docs
+      - name: inventory
+        url: /api/inventory/v3/api-docs
+      - name: notifications
+        url: /api/notifications/v3/api-docs

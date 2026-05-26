@@ -1,0 +1,72 @@
+spring:
+  application:
+    name: order-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:order_svc}
+    username: ${DB_USER:order_svc}
+    password: ${DB_PASSWORD:order_svc_pw}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      # Phase 24: cho phép start khi DB chưa healthy (lazy connection) — D-15
+      initialization-fail-timeout: -1
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: false
+    # Phase 26.1: cho phép apply V6 + V7 sau V100/V103 đã có (seed-dev chạy trước core migration)
+    out-of-order: true
+    locations: classpath:db/migration
+  # Phase 23 / Plan 23-02: messaging — producer OrderPlaced (D-02..D-07)
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: 5672
+    username: ${SPRING_RABBITMQ_USER:guest}
+    password: ${SPRING_RABBITMQ_PASS:guest}
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    listener:
+      simple:
+        acknowledge-mode: auto
+        prefetch: 10
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1000
+          multiplier: 2.0
+          max-interval: 10000
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:dev-jwt-secret-key-minimum-32-characters-for-hs256-ok}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
+# Profile dev: thêm seed-dev location
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  flyway:
+    locations: classpath:db/migration,classpath:db/seed-dev
