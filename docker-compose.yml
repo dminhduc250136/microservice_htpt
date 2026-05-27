@@ -12,6 +12,8 @@ services:
       POSTGRES_DB: user_svc
       POSTGRES_USER: user_svc
       POSTGRES_PASSWORD: user_svc_pw
+    ports:
+      - "54321:5432"
     volumes:
       - pgdata-user:/var/lib/postgresql/data
     healthcheck:
@@ -26,6 +28,8 @@ services:
       POSTGRES_DB: product_svc
       POSTGRES_USER: product_svc
       POSTGRES_PASSWORD: product_svc_pw
+    ports:
+      - "54322:5432"
     volumes:
       - pgdata-product:/var/lib/postgresql/data
     healthcheck:
@@ -40,6 +44,8 @@ services:
       POSTGRES_DB: order_svc
       POSTGRES_USER: order_svc
       POSTGRES_PASSWORD: order_svc_pw
+    ports:
+      - "54323:5432"
     volumes:
       - pgdata-order:/var/lib/postgresql/data
     healthcheck:
@@ -54,6 +60,8 @@ services:
       POSTGRES_DB: inventory_svc
       POSTGRES_USER: inventory_svc
       POSTGRES_PASSWORD: inventory_svc_pw
+    ports:
+      - "54324:5432"
     volumes:
       - pgdata-inventory:/var/lib/postgresql/data
     healthcheck:
@@ -68,6 +76,8 @@ services:
       POSTGRES_DB: payment_svc
       POSTGRES_USER: payment_svc
       POSTGRES_PASSWORD: payment_svc_pw
+    ports:
+      - "54325:5432"
     volumes:
       - pgdata-payment:/var/lib/postgresql/data
     healthcheck:
@@ -84,6 +94,8 @@ services:
       POSTGRES_DB: notification_svc
       POSTGRES_USER: notification_svc
       POSTGRES_PASSWORD: notification_svc_pw
+    ports:
+      - "54326:5432"
     volumes:
       - pgdata-notification:/var/lib/postgresql/data
     healthcheck:
@@ -99,6 +111,8 @@ services:
       POSTGRES_DB: chat_svc
       POSTGRES_USER: chat_svc
       POSTGRES_PASSWORD: chat_svc_pw
+    ports:
+      - "54327:5432"
     volumes:
       - pgdata-chat:/var/lib/postgresql/data
     healthcheck:
@@ -139,7 +153,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-key-minimum-32-characters-for-hs256-ok}
+      JWT_SECRET: ${JWT_SECRET}
     depends_on:
       - user-service
       - product-service
@@ -165,7 +179,7 @@ services:
       DB_NAME: user_svc
       DB_USER: user_svc
       DB_PASSWORD: user_svc_pw
-      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-key-minimum-32-characters-for-hs256-ok}
+      JWT_SECRET: ${JWT_SECRET}
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_USER: guest
       SPRING_RABBITMQ_PASS: guest
