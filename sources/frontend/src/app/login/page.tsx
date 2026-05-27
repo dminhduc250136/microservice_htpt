@@ -63,7 +63,10 @@ function LoginPageContent() {
       // Phase 18 / D-13: await để đảm bảo mergeGuestCartToServer() hoàn tất
       // trước khi router.replace chuyển trang — tránh cart UI flicker sau login.
       await authLogin({ id: data.user.id, email: data.user.email, name: data.user.username ?? data.user.email });
-      router.replace(returnTo);
+      const isAdmin = Boolean(
+        data.user?.roles?.includes('ADMIN') || data.user?.role === 'ADMIN'
+      );
+      router.replace(isAdmin ? '/admin' : returnTo);
     } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 401) {
         // Per UI-SPEC: 401 → Banner form-level (không highlight field)
