@@ -183,7 +183,7 @@ services:
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_USER: guest
       SPRING_RABBITMQ_PASS: guest
-      APP_BASE_URL: http://localhost:3000
+      APP_BASE_URL: ${APP_BASE_URL}
 
   product-service:
     build: ./sources/backend/product-service
@@ -239,10 +239,10 @@ services:
       MOMO_ACCESS_KEY: ${MOMO_ACCESS_KEY:-F8BBA842ECF85}
       MOMO_SECRET_KEY: ${MOMO_SECRET_KEY:-K951B6PE1waDMi640xX08PD3vg6EkVlz}
       MOMO_PAY_URL: ${MOMO_PAY_URL:-https://test-payment.momo.vn/v2/gateway/api/create}
-      MOMO_RETURN_URL: ${MOMO_RETURN_URL:-http://localhost:3000/checkout/result}
+      MOMO_RETURN_URL: ${MOMO_RETURN_URL:-http://74.226.89.57/checkout/result}
       # MoMo bắt buộc ipnUrl phải có format URL hợp lệ (không blank). Localhost không gọi được từ internet —
       # set MOMO_IPN_URL trong .env tới ngrok tunnel để test IPN thật (vd https://abc.ngrok-free.app/api/payments/momo/ipn)
-      MOMO_IPN_URL: ${MOMO_IPN_URL:-http://localhost:8080/api/payments/momo/ipn}
+      MOMO_IPN_URL: ${MOMO_IPN_URL:-http://74.226.89.57/api/payments/momo/ipn}
 
   inventory-service:
     build: ./sources/backend/inventory-service
@@ -289,7 +289,10 @@ services:
       MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-}
 
   frontend:
-    build: ./sources/frontend
+    build:
+      context: ./sources/frontend
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
     ports:
       - "3000:3000"
     depends_on:
@@ -304,6 +307,7 @@ services:
       DB_USER: chat_svc
       DB_PASSWORD: chat_svc_pw
       API_GATEWAY_URL: http://api-gateway:8080
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
 
 volumes:
   pgdata-user:
