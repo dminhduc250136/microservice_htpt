@@ -359,7 +359,7 @@ export default function AdminCouponsPage() {
           </tbody>
         </table>
       </div>
-      {!loading && !failed && <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />}
+      {!loading && !failed && <Pagination page={page} totalPages={totalPages} onPageChange={setPage} alwaysShow />}
 
       {/* Modal: Add / Edit */}
       {showModal && (
