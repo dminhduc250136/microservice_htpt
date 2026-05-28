@@ -49,6 +49,10 @@ app:
   jwt:
     secret: ${JWT_SECRET:dev-jwt-secret-key-minimum-32-characters-for-hs256-ok}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+  google:
+    # OAuth Client ID (Web application) từ Google Cloud Console — dùng làm audience khi verify ID token.
+    # Để trống thì endpoint /auth/google trả 503; login bằng password vẫn hoạt động.
+    client-id: ${GOOGLE_CLIENT_ID:}
 
 ---
 spring:
