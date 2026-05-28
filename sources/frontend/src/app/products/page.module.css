@@ -230,6 +230,10 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-4);
+  /* Mỗi card chỉ cao bằng nội dung của nó. Không có dòng này, grid mặc định
+     stretch → card thấp bị kéo cao bằng card cao nhất → vùng ảnh (flex item)
+     giãn quá tỉ lệ 4:5, khiến ảnh cao không đồng đều. */
+  align-items: start;
 }
 
 /* --- Empty State --- */
