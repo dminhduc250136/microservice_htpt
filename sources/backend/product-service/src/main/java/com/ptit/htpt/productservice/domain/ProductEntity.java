@@ -67,6 +67,15 @@ public class ProductEntity {
   @Column(name = "review_count")
   private int reviewCount = 0;
 
+  @Column(name = "sold_count", nullable = false)
+  private int soldCount = 0;
+
+  @Column(columnDefinition = "TEXT")
+  private String description;
+
+  @Column(columnDefinition = "TEXT")
+  private String specifications;
+
   @Column(nullable = false)
   private boolean deleted = false;
 
@@ -157,6 +166,9 @@ public class ProductEntity {
   public int stock() { return stock; }
   public BigDecimal avgRating() { return avgRating; }
   public int reviewCount() { return reviewCount; }
+  public int soldCount() { return soldCount; }
+  public String description() { return description; }
+  public String specifications() { return specifications; }
   public boolean deleted() { return deleted; }
   public Instant createdAt() { return createdAt; }
   public Instant updatedAt() { return updatedAt; }
