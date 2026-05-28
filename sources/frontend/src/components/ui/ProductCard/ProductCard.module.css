@@ -176,6 +176,12 @@
   color: var(--outline);
 }
 
+.soldCount {
+  font-size: var(--text-body-sm);
+  color: var(--outline);
+  margin-left: auto;
+}
+
 /* --- Responsive --- */
 @media (max-width: 768px) {
   .content {
