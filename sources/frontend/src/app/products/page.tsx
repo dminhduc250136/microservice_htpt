@@ -35,8 +35,8 @@ function ProductsPageContent() {
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
 
-  // Phân trang — page 0-based khớp Spring Pageable.
-  const PAGE_SIZE = 24;
+  // Phân trang — page 0-based khớp Spring Pageable. 9 SP/trang = lưới 3x3.
+  const PAGE_SIZE = 9;
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
@@ -275,7 +275,7 @@ function ProductsPageContent() {
             {/* States: loading → skeleton; failed → RetrySection; empty → empty-state; list → grid */}
             {loading ? (
               <div className={styles.productsGrid}>
-                {[...Array(8)].map((_, i) => (
+                {[...Array(PAGE_SIZE)].map((_, i) => (
                   <div key={i} className={`${styles.skeletonCard} skeleton`} style={{ height: 360 }} />
                 ))}
               </div>
