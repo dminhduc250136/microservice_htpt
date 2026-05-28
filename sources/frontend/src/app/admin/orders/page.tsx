@@ -136,7 +136,7 @@ export default function AdminOrdersPage() {
           </tbody>
         </table>
       </div>
-      {!loading && !failed && <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />}
+      {!loading && !failed && <Pagination page={page} totalPages={totalPages} onPageChange={setPage} alwaysShow />}
     </div>
   );
 }

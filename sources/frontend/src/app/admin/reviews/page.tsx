@@ -235,7 +235,7 @@ export default function AdminReviewsPage() {
       )}
 
       {meta && (
-        <Pagination page={page} totalPages={meta.totalPages} onPageChange={setPage} />
+        <Pagination page={page} totalPages={meta.totalPages} onPageChange={setPage} alwaysShow />
       )}
     </div>
   );
