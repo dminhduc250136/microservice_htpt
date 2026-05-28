@@ -43,7 +43,7 @@
   display: grid;
   grid-template-columns: 280px 1fr;
   gap: var(--space-6);
-  align-items: stretch;
+  align-items: start;
 }
 
 /* --- Sidebar --- */
@@ -51,9 +51,11 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  /* Kéo dài bằng chiều cao cột sản phẩm (lưới 3x3) để không bị mất cân đối khi
-     ít bộ lọc. Nền + bo góc tạo khối filter rõ ràng. */
-  align-self: stretch;
+  /* Ôm theo nội dung filter (không kéo dài bằng lưới) + sticky khi cuộn. Nền +
+     bo góc tạo khối filter rõ ràng. */
+  align-self: start;
+  position: sticky;
+  top: 96px;
   background: var(--surface-container-low);
   border-radius: var(--radius-xl);
   padding: var(--space-5);
