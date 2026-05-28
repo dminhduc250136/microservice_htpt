@@ -51,11 +51,11 @@ export default function Header() {
     <header className={styles.header}>
       <div className={styles.container}>
         {/* Logo */}
-        <Link href="/" className={styles.logo} aria-label="The Digital Atélier — Trang chủ">
-          <span className={styles.logoMark} aria-hidden="true">DA</span>
+        <Link href="/" className={styles.logo} aria-label="LapTech Store — Trang chủ">
+          <span className={styles.logoMark} aria-hidden="true">LT</span>
           <span className={styles.logoWordmark}>
-            <span className={styles.logoText}>The Digital</span>
-            <span className={styles.logoAccent}>Atélier</span>
+            <span className={styles.logoText}>Lap</span>
+            <span className={styles.logoAccent}>Tech</span>
           </span>
         </Link>
 

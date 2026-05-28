@@ -15,10 +15,10 @@ const beVietnamPro = Be_Vietnam_Pro({
 });
 
 export const metadata: Metadata = {
-  title: "The Digital Atélier | Mua sắm đẳng cấp",
+  title: "LapTech Store | Laptop & Thiết bị công nghệ chính hãng",
   description:
-    "Trải nghiệm mua sắm kỹ thuật số đẳng cấp. Chúng tôi mang đến sự tinh tế trong từng sản phẩm và niềm tin trong từng giao dịch.",
-  keywords: ["thương mại điện tử", "mua sắm online", "thời trang", "phụ kiện"],
+    "LapTech Store — cửa hàng laptop, điện thoại và phụ kiện công nghệ chính hãng. Giá tốt, bảo hành uy tín, giao hàng nhanh toàn quốc.",
+  keywords: ["laptop", "điện thoại", "phụ kiện công nghệ", "thiết bị điện tử", "mua sắm online"],
 };
 
 export default function RootLayout({
