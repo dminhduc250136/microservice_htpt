@@ -63,7 +63,7 @@ export default function AdminOrdersPage() {
   useEffect(() => { load(); }, [load]);
 
   const { pageItems, page, totalPages, pageSize, setPage, setPageSize } =
-    useClientPagination(orders, 10);
+    useClientPagination<AdminOrder>(orders, 10);
 
   return (
     <div className={styles.page}>
