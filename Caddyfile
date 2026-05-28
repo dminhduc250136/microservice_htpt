@@ -1,0 +1,29 @@
+# Reverse proxy + HTTPS tự động (Let's Encrypt) cho deployment trên VM.
+#
+# Một domain duy nhất phục vụ cả frontend lẫn API (same-origin → không cần CORS):
+#   - 6 prefix REST của API Gateway → api-gateway:8080
+#   - mọi path còn lại (gồm Next.js BFF /api/chat, /api/admin/.../suggest-reply) → frontend:3000
+#
+# QUAN TRỌNG: chỉ route ĐÚNG các prefix của gateway, KHÔNG dùng /api/* tổng quát —
+# vì Next.js có route BFF riêng dưới /api (chat, suggest-reply) sẽ bị gửi nhầm sang gateway.
+#
+# Caddy tự xin + gia hạn TLS cho ${SITE_ADDRESS}. Yêu cầu:
+#   - DNS A record của domain trỏ về IP VM (đã xong: n24shop.io.vn → 74.226.89.57)
+#   - Cổng 80 + 443 mở trên VM (Let's Encrypt HTTP-01 challenge dùng cổng 80)
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$SITE_ADDRESS} {
+	# Các prefix thuộc API Gateway. Giữ nguyên path (gateway tự RewritePath nội bộ).
+	@gateway path /api/users* /api/products* /api/orders* /api/payments* /api/inventory* /api/notifications*
+	handle @gateway {
+		reverse_proxy api-gateway:8080
+	}
+
+	# Mọi thứ còn lại → Next.js (trang web + route BFF /api/chat, /api/admin/.../suggest-reply).
+	handle {
+		reverse_proxy frontend:3000
+	}
+}
