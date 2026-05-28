@@ -36,7 +36,21 @@ export interface ListProductsParams {
   priceMax?: number;        // NEW
 }
 
-export function listProducts(params?: ListProductsParams): Promise<PaginatedResponse<Product>> {
+/**
+ * Backend ProductResponse trả điểm trung bình ở field `rating`, nhưng FE đọc
+ * `avgRating` (xem types Product) → sao luôn rỗng. Chuẩn hóa tại đây: nếu
+ * `avgRating` chưa có thì lấy từ `rating`. Áp cho mọi hàm đọc product.
+ */
+function normalizeProduct(p: Product): Product {
+  if (p == null) return p;
+  const raw = p as Product & { rating?: number };
+  if (raw.avgRating == null && raw.rating != null) {
+    return { ...p, avgRating: raw.rating };
+  }
+  return p;
+}
+
+export async function listProducts(params?: ListProductsParams): Promise<PaginatedResponse<Product>> {
   const qs = new URLSearchParams();
   if (params?.page !== undefined) qs.set('page', String(params.page));
   if (params?.size !== undefined) qs.set('size', String(params.size));
@@ -49,11 +63,12 @@ export function listProducts(params?: ListProductsParams): Promise<PaginatedResp
   if (params?.priceMin !== undefined) qs.set('priceMin', String(params.priceMin));
   if (params?.priceMax !== undefined) qs.set('priceMax', String(params.priceMax));
   const suffix = qs.toString() ? `?${qs}` : '';
-  return httpGet<PaginatedResponse<Product>>(`/api/products${suffix}`);
+  const resp = await httpGet<PaginatedResponse<Product>>(`/api/products${suffix}`);
+  return { ...resp, content: (resp?.content ?? []).map(normalizeProduct) };
 }
 
-export function getProductById(id: string): Promise<Product> {
-  return httpGet<Product>(`/api/products/${encodeURIComponent(id)}`);
+export async function getProductById(id: string): Promise<Product> {
+  return normalizeProduct(await httpGet<Product>(`/api/products/${encodeURIComponent(id)}`));
 }
 
 /**
@@ -64,7 +79,8 @@ export function getProductById(id: string): Promise<Product> {
  */
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   const page = await httpGet<PaginatedResponse<Product>>(`/api/products?size=50`);
-  return page?.content?.find(p => p.slug === slug) ?? null;
+  const found = page?.content?.find(p => p.slug === slug);
+  return found ? normalizeProduct(found) : null;
 }
 
 export function listCategories(): Promise<PaginatedResponse<Category>> {
