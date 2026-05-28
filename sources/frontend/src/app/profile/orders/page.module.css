@@ -51,3 +51,34 @@
   .stickyFilter { top: 56px; }
   .orderCard { padding: var(--space-3); }
 }
+
+
+.section {
+  background: var(--surface-container-low);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--space-4);
+  gap: var(--space-3);
+}
+
+.sectionTitle {
+  font-size: var(--text-title-md);
+  font-weight: var(--weight-semibold);
+  color: var(--on-surface);
+}
+
+.sectionCount {
+  font-size: var(--text-body-sm);
+  color: var(--on-surface-variant);
+  white-space: nowrap;
+}
+
+.body {
+  min-width: 0;
+}

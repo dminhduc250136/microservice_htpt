@@ -81,28 +81,25 @@ function OrdersPageInner() {
   );
 
   return (
-    <div className={styles.page}>
-      <div className={styles.pageHeader}>
-        <div className={styles.container}>
-          <h1 className={styles.pageTitle}>Lịch sử đơn hàng</h1>
-          {totalElements > 0 && (
-            <p className={styles.pageSubtitle}>{totalElements} đơn hàng</p>
-          )}
-        </div>
+    <div className={styles.section}>
+      <div className={styles.sectionHeader}>
+        <h2 className={styles.sectionTitle}>Lịch sử đơn hàng</h2>
+        {totalElements > 0 && (
+          <span className={styles.sectionCount}>{totalElements} đơn hàng</span>
+        )}
       </div>
 
-      <div className={`${styles.container} ${styles.content}`}>
-        {/* OrderFilterBar — sticky sau header */}
-        <div className={styles.stickyFilter}>
-          <OrderFilterBar
-            initialStatus={statusParam}
-            initialFrom={fromParam}
-            initialTo={toParam}
-            initialQ={qParam}
-            onChange={handleFilterChange}
-          />
-        </div>
+      <div className={styles.stickyFilter}>
+        <OrderFilterBar
+          initialStatus={statusParam}
+          initialFrom={fromParam}
+          initialTo={toParam}
+          initialQ={qParam}
+          onChange={handleFilterChange}
+        />
+      </div>
 
+      <div className={styles.body}>
         {ordersLoading ? (
           <div className="skeleton" style={{ height: 120, borderRadius: 'var(--radius-lg)' }} />
         ) : ordersFailed ? (
