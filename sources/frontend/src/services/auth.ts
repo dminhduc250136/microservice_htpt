@@ -81,7 +81,9 @@ export function logout(): void {
  * Không throw khi email không tồn tại — caller chỉ hiện success state.
  */
 export async function forgotPassword(email: string): Promise<void> {
-  await httpPost('/api/users/auth/password/forgot', { email });
+  // skipAuth=true: public flow. A stale/expired token would be rejected by the gateway (401)
+  // before reaching user-service.
+  await httpPost('/api/users/auth/password/forgot', { email }, undefined, true);
 }
 
 /**
@@ -89,5 +91,9 @@ export async function forgotPassword(email: string): Promise<void> {
  * Throw ApiError với status 400/410 khi token hết hạn hoặc không hợp lệ.
  */
 export async function resetPassword(token: string, newPassword: string): Promise<void> {
-  await httpPost('/api/users/auth/password/reset', { token, newPassword });
+  // skipAuth=true: public flow. The user clicking the email link may still have a stale/expired
+  // token in localStorage; sending it would make the gateway 401 before user-service runs the
+  // reset, so the password silently never changes. The reset is authorized by the email token,
+  // not by the Bearer.
+  await httpPost('/api/users/auth/password/reset', { token, newPassword }, undefined, true);
 }

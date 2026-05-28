@@ -71,13 +71,18 @@ async function request<T>(
   path: string,
   body?: unknown,
   extraHeaders?: Record<string, string>,
+  skipAuth = false,
 ): Promise<T> {
   const token = getAccessToken();
   const headers: Record<string, string> = {
     'Accept': 'application/json',
   };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  // skipAuth: public auth flows (forgot/reset/verify). A stale/expired token in
+  // localStorage would make the gateway reject the request with 401 BEFORE it reaches
+  // user-service (gateway verifies any Bearer it sees, even on public endpoints), so the
+  // password is never changed. Omit the header entirely for these flows.
+  if (token && !skipAuth) headers['Authorization'] = `Bearer ${token}`;
   if (extraHeaders) {
     for (const [k, v] of Object.entries(extraHeaders)) {
       // Skip undefined/empty so callers can pass `userId ? { 'X-User-Id': userId } : undefined`
@@ -191,8 +196,8 @@ async function request<T>(
   );
 }
 
-export const httpGet    = <T>(path: string, extraHeaders?: Record<string, string>) => request<T>('GET', path, undefined, extraHeaders);
-export const httpPost   = <T>(path: string, body?: unknown, extraHeaders?: Record<string, string>) => request<T>('POST', path, body, extraHeaders);
+export const httpGet    = <T>(path: string, extraHeaders?: Record<string, string>, skipAuth?: boolean) => request<T>('GET', path, undefined, extraHeaders, skipAuth);
+export const httpPost   = <T>(path: string, body?: unknown, extraHeaders?: Record<string, string>, skipAuth?: boolean) => request<T>('POST', path, body, extraHeaders, skipAuth);
 export const httpPut    = <T>(path: string, body?: unknown, extraHeaders?: Record<string, string>) => request<T>('PUT', path, body, extraHeaders);
 export const httpPatch  = <T>(path: string, body?: unknown, extraHeaders?: Record<string, string>) => request<T>('PATCH', path, body, extraHeaders);
 export const httpDelete = <T>(path: string, extraHeaders?: Record<string, string>) => request<T>('DELETE', path, undefined, extraHeaders);
