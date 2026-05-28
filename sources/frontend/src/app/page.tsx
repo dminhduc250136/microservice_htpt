@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import styles from './page.module.css';
 import ProductCard from '@/components/ui/ProductCard/ProductCard';
+import FeaturedCarousel from '@/components/ui/FeaturedCarousel/FeaturedCarousel';
 import Button from '@/components/ui/Button/Button';
 import RetrySection from '@/components/ui/RetrySection/RetrySection';
 import HeroCarousel from '@/components/ui/HeroCarousel/HeroCarousel';
@@ -119,18 +120,7 @@ export default function Home() {
           ) : failed ? (
             <RetrySection onRetry={() => load()} loading={loading} />
           ) : featured.length > 0 ? (
-            <div
-              className={styles.featuredScroll}
-              role="region"
-              aria-label="Sản phẩm nổi bật — vuốt ngang để xem thêm"
-              tabIndex={0}
-            >
-              {featured.map((product) => (
-                <div key={product.id} className={styles.featuredCard}>
-                  <ProductCard product={product} />
-                </div>
-              ))}
-            </div>
+            <FeaturedCarousel products={featured} />
           ) : (
             <p style={{ color: 'var(--on-surface-variant)' }}>Chưa có sản phẩm nổi bật.</p>
           )}

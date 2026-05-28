@@ -34,7 +34,10 @@
 /* --- Image --- */
 .imageWrapper {
   position: relative;
+  width: 100%;
   aspect-ratio: 4 / 5;
+  /* Giữ tỉ lệ ảnh cố định kể cả khi card cha bị flex stretch cao hơn. */
+  flex-shrink: 0;
   overflow: hidden;
   border-radius: var(--radius-lg);
 }
