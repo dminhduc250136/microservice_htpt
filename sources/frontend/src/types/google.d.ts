@@ -12,6 +12,9 @@ interface GoogleIdConfig {
   callback: (response: GoogleCredentialResponse) => void;
   auto_select?: boolean;
   cancel_on_tap_outside?: boolean;
+  /** false → account chooser mở popup cửa sổ thật (căn giữa) thay vì khung FedCM góc phải. */
+  use_fedcm_for_button?: boolean;
+  ux_mode?: 'popup' | 'redirect';
 }
 
 interface GoogleButtonConfig {
