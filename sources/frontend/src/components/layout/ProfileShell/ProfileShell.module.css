@@ -1,0 +1,125 @@
+.page {
+  min-height: 100vh;
+  background: var(--surface-container-lowest);
+}
+
+.pageHeader {
+  padding: var(--space-6) 0;
+  border-bottom: 1px solid var(--outline-variant);
+}
+
+.pageTitle {
+  font-size: var(--text-headline-md);
+  font-weight: var(--weight-bold);
+  color: var(--on-surface);
+}
+
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+
+.content {
+  padding-top: var(--space-6);
+  padding-bottom: var(--space-8);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.sidebar {
+  position: sticky;
+  top: var(--space-6);
+}
+
+.userCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--surface-container-low);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-4);
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--on-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-title-md);
+  font-weight: var(--weight-bold);
+  flex-shrink: 0;
+}
+
+.userName {
+  font-weight: var(--weight-semibold);
+  color: var(--on-surface);
+}
+
+.userEmail {
+  font-size: var(--text-body-sm);
+  color: var(--on-surface-variant);
+}
+
+.sideNav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-body-md);
+  font-weight: var(--weight-medium);
+  color: var(--on-surface-variant);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: all var(--transition-fast);
+  text-decoration: none;
+}
+
+.navItem:hover {
+  background: var(--surface-container-low);
+  color: var(--on-surface);
+}
+
+.navActive {
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+}
+
+.navActive:hover {
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+}
+
+.main {
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+  }
+}

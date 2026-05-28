@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
 import styles from './page.module.css';
 import Button from '@/components/ui/Button/Button';
 import Modal from '@/components/ui/Modal/Modal';
@@ -111,97 +110,50 @@ export default function AddressesPage() {
   const isAtLimit = addresses.length >= 10;
 
   return (
-    <div className={styles.page}>
-      <div className={styles.pageHeader}>
-        <div className={styles.container}>
-          <h1 className={styles.pageTitle}>Sổ địa chỉ</h1>
+    <>
+      <div className={styles.section}>
+        <div className={styles.headerRow}>
+          <h2 className={styles.sectionTitle}>Địa chỉ của tôi</h2>
+          <Button
+            variant="primary"
+            onClick={() => setShowCreateModal(true)}
+            disabled={isAtLimit}
+            title={isAtLimit ? 'Đã đạt giới hạn 10 địa chỉ' : undefined}
+          >
+            + Thêm địa chỉ mới
+          </Button>
         </div>
-      </div>
 
-      <div className={`${styles.container} ${styles.content}`}>
-        <div className={styles.layout}>
-          {/* Sidebar */}
-          <aside className={styles.sidebar}>
-            <nav className={styles.sideNav}>
-              <Link href="/profile" className={styles.navItem}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                  <circle cx="12" cy="7" r="4" />
-                </svg>
-                Thông tin cá nhân
-              </Link>
-              <Link href="/profile/orders" className={styles.navItem}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-                  <line x1="3" y1="6" x2="21" y2="6" />
-                </svg>
-                Đơn hàng
-              </Link>
-              <Link href="/profile/addresses" className={`${styles.navItem} ${styles.navActive}`}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-                Địa chỉ
-              </Link>
-              <Link href="/profile/settings#security" className={styles.navItem}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
-                Cài đặt bảo mật
-              </Link>
-            </nav>
-          </aside>
-
-          {/* Main Content */}
-          <main className={styles.main}>
-            <div className={styles.section}>
-              <div className={styles.headerRow}>
-                <h2 className={styles.sectionTitle}>Địa chỉ của tôi</h2>
-                <Button
-                  variant="primary"
-                  onClick={() => setShowCreateModal(true)}
-                  disabled={isAtLimit}
-                  title={isAtLimit ? 'Đã đạt giới hạn 10 địa chỉ' : undefined}
-                >
-                  + Thêm địa chỉ mới
-                </Button>
-              </div>
-
-              {loading ? (
-                <div className="skeleton" style={{ height: 120, borderRadius: 'var(--radius-lg)' }} />
-              ) : failed ? (
-                <RetrySection onRetry={loadAddresses} loading={loading} />
-              ) : addresses.length === 0 ? (
-                <div className={styles.emptyState}>
-                  <div className={styles.emptyBody}>
-                    <h3>Chưa có địa chỉ nào</h3>
-                    <p>Thêm địa chỉ giao hàng để thanh toán nhanh hơn.</p>
-                  </div>
-                  <div className={styles.emptyActions}>
-                    <Button variant="primary" onClick={() => setShowCreateModal(true)}>
-                      Thêm địa chỉ đầu tiên
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className={styles.addressList}>
-                  {addresses.map((address) => (
-                    <AddressCard
-                      key={address.id}
-                      address={address}
-                      onEdit={(a) => setEditTarget(a)}
-                      onDelete={(a) => setDeleteTarget(a)}
-                      onSetDefault={handleSetDefault}
-                      settingDefault={settingDefaultId === address.id}
-                    />
-                  ))}
-                </div>
-              )}
+        {loading ? (
+          <div className="skeleton" style={{ height: 120, borderRadius: 'var(--radius-lg)' }} />
+        ) : failed ? (
+          <RetrySection onRetry={loadAddresses} loading={loading} />
+        ) : addresses.length === 0 ? (
+          <div className={styles.emptyState}>
+            <div className={styles.emptyBody}>
+              <h3>Chưa có địa chỉ nào</h3>
+              <p>Thêm địa chỉ giao hàng để thanh toán nhanh hơn.</p>
             </div>
-          </main>
-        </div>
+            <div className={styles.emptyActions}>
+              <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+                Thêm địa chỉ đầu tiên
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className={styles.addressList}>
+            {addresses.map((address) => (
+              <AddressCard
+                key={address.id}
+                address={address}
+                onEdit={(a) => setEditTarget(a)}
+                onDelete={(a) => setDeleteTarget(a)}
+                onSetDefault={handleSetDefault}
+                settingDefault={settingDefaultId === address.id}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Modal: Create Address — dùng custom overlay vì AddressForm tự có submit button */}
@@ -286,6 +238,6 @@ export default function AddressesPage() {
           </>
         )}
       </Modal>
-    </div>
+    </>
   );
 }
