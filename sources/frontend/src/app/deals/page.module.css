@@ -19,6 +19,8 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-4);
+  /* Card cao theo nội dung — tránh grid stretch làm vùng ảnh giãn quá 4:5. */
+  align-items: start;
 }
 
 .skeleton {
