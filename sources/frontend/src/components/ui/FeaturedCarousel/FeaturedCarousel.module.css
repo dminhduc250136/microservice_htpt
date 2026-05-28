@@ -1,0 +1,99 @@
+/* ============================================
+   FEATURED CAROUSEL — cuộn ngang + nút prev/next + autoplay
+   ============================================ */
+
+.wrapper {
+  position: relative;
+}
+
+/* === Vùng cuộn (chuyển từ page.module.css .featuredScroll) === */
+.featuredScroll {
+  display: flex;
+  /* Mỗi card cao theo nội dung thật, KHÔNG stretch theo card cao nhất —
+     tránh card có nội dung dài bị giãn lệch. */
+  align-items: flex-start;
+  gap: var(--space-4);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding: var(--space-4);
+  -webkit-overflow-scrolling: touch; /* iOS momentum */
+  scrollbar-width: none; /* Firefox */
+  padding-bottom: var(--space-2); /* breathing room */
+}
+
+.featuredScroll::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Edge */
+}
+
+.featuredScroll:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-lg);
+}
+
+.featuredCard {
+  flex: 0 0 280px;
+  scroll-snap-align: start;
+}
+
+/* === Nút điều hướng — nổi 2 bên, dọc giữa vùng ảnh === */
+.navArrow {
+  position: absolute;
+  top: 40%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--outline-variant);
+  box-shadow: var(--shadow-md);
+  color: var(--on-surface);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  z-index: 3;
+}
+
+.navArrow:hover:not(:disabled) {
+  background: var(--primary);
+  color: var(--on-primary);
+  transform: translateY(-50%) scale(1.08);
+}
+
+.navArrow:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.navPrev {
+  left: calc(-1 * var(--space-3));
+}
+
+.navNext {
+  right: calc(-1 * var(--space-3));
+}
+
+@media (max-width: 768px) {
+  .featuredCard {
+    flex-basis: 240px;
+  }
+
+  .navArrow {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Trên mobile ưu tiên vuốt — kéo nút vào trong mép để không tràn màn hình. */
+  .navPrev {
+    left: var(--space-1);
+  }
+
+  .navNext {
+    right: var(--space-1);
+  }
+}
+
+/* Tôn trọng prefers-reduced-motion — autoplay vẫn chạy nhưng không trượt mượt
+   (behavior:'smooth' bị trình duyệt tự bỏ qua khi user bật reduce-motion). */
