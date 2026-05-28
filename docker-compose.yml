@@ -150,8 +150,9 @@ services:
   # Gateway verify JWT ở edge — cần JWT_SECRET trùng user-service.
   api-gateway:
     build: ./sources/backend/api-gateway
-    ports:
-      - "8080:8080"
+    # Không expose ra host nữa — mọi traffic đi qua Caddy (HTTPS). Chỉ mở trong docker network.
+    expose:
+      - "8080"
     environment:
       JWT_SECRET: ${JWT_SECRET}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
@@ -296,8 +297,9 @@ services:
       args:
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
-    ports:
-      - "3000:3000"
+    # Không expose ra host nữa — Caddy proxy tới frontend:3000 trong docker network.
+    expose:
+      - "3000"
     depends_on:
       - api-gateway
       - postgres-chat
@@ -312,7 +314,29 @@ services:
       API_GATEWAY_URL: http://api-gateway:8080
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
 
+  # Reverse proxy + HTTPS tự động (Let's Encrypt). Là service DUY NHẤT expose ra host.
+  # Route same-origin: /api/<service>* → gateway, còn lại → frontend (xem ./Caddyfile).
+  # SITE_ADDRESS + ACME_EMAIL lấy từ .env. Cần mở cổng 80 + 443 trên VM.
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - api-gateway
+      - frontend
+
 volumes:
+  caddy-data:
+  caddy-config:
   pgdata-user:
   pgdata-product:
   pgdata-order:
