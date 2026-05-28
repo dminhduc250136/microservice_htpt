@@ -127,6 +127,7 @@ export interface Product {
   rating?: number;           // legacy — deprecated; dùng avgRating từ Phase 13
   avgRating?: number;        // Phase 13: real avg từ BE (thay hardcode ZERO)
   reviewCount: number;
+  soldCount?: number;        // Phase 28: số lượng đã bán
   stock: number;
   status: 'ACTIVE' | 'INACTIVE' | 'OUT_OF_STOCK';
   tags?: string[];

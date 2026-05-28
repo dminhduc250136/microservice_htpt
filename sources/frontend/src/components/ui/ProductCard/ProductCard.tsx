@@ -103,6 +103,9 @@ export default function ProductCard({ product, className = '' }: ProductCardProp
             ))}
           </div>
           <span className={styles.reviewCount}>({product.reviewCount ?? 0})</span>
+          {(product.soldCount ?? 0) > 0 && (
+            <span className={styles.soldCount}>Đã bán {product.soldCount}</span>
+          )}
         </div>
       </div>
     </div>
