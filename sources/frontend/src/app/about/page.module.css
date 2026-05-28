@@ -1,0 +1,111 @@
+.section {
+  padding: var(--space-8) 0;
+}
+
+.inner {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+
+.heading {
+  font-family: var(--font-family-headline);
+  font-size: var(--text-headline-md);
+  font-weight: var(--weight-bold);
+  margin-bottom: var(--space-6);
+  text-align: center;
+}
+
+.valueGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+}
+
+.valueCard {
+  background: var(--surface-container-low);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
+}
+
+.valueTitle {
+  font-size: var(--text-title-md);
+  font-weight: var(--weight-semibold);
+  margin-bottom: var(--space-2);
+}
+
+.valueText {
+  color: var(--on-surface-variant);
+  font-size: var(--text-body-md);
+  line-height: var(--leading-relaxed);
+}
+
+.statSection {
+  padding: var(--space-8) 0;
+  background: var(--surface-container-low);
+}
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+  text-align: center;
+}
+
+.statValue {
+  display: block;
+  font-family: var(--font-family-headline);
+  font-size: var(--text-headline-lg);
+  font-weight: var(--weight-bold);
+  color: var(--primary);
+}
+
+.statLabel {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--on-surface-variant);
+  font-size: var(--text-body-sm);
+}
+
+.ctaCard {
+  text-align: center;
+  background: var(--surface-container-low);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-8) var(--space-6);
+}
+
+.ctaTitle {
+  font-family: var(--font-family-headline);
+  font-size: var(--text-headline-md);
+  font-weight: var(--weight-bold);
+  margin-bottom: var(--space-3);
+}
+
+.ctaText {
+  color: var(--on-surface-variant);
+  margin-bottom: var(--space-5);
+}
+
+.ctaButton {
+  display: inline-block;
+  background: var(--primary);
+  color: var(--on-primary);
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-full);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+}
+
+@media (max-width: 1024px) {
+  .valueGrid,
+  .statGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .valueGrid,
+  .statGrid {
+    grid-template-columns: 1fr;
+  }
+}
