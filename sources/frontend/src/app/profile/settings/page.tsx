@@ -147,8 +147,6 @@ export default function SettingsPage() {
 
   return (
     <div className={styles.page}>
-      <h1 className={styles.title}>Cài đặt tài khoản</h1>
-
       {/* Section 1: Profile Info — NEW Phase 10 / ACCT-03 */}
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Thông tin cá nhân</h2>
