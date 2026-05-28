@@ -46,12 +46,19 @@ export async function searchProductsForContext(userMessage: string): Promise<Cha
 }
 
 function mapProduct(p: Record<string, unknown>): ChatProduct {
+  const cat = p.category as { name?: unknown } | null | undefined;
   return {
     id: String(p.id ?? ''),
     name: String(p.name ?? ''),
     price: Number(p.price ?? 0),
     brand: p.brand != null ? String(p.brand) : null,
     stock: p.stock != null ? Number(p.stock) : null,
+    shortDescription: p.shortDescription != null && String(p.shortDescription).trim() !== ''
+      ? String(p.shortDescription) : null,
+    category: cat?.name != null ? String(cat.name) : null,
+    rating: p.rating != null ? Number(p.rating) : null,
+    reviewCount: p.reviewCount != null ? Number(p.reviewCount) : null,
+    soldCount: p.soldCount != null ? Number(p.soldCount) : null,
   };
 }
 
@@ -61,9 +68,20 @@ function mapProduct(p: Record<string, unknown>): ChatProduct {
  */
 export function buildContextXml(products: ChatProduct[]): string {
   return products
-    .map(
-      (p) =>
-        `<product id="${escapeXml(p.id)}" name="${escapeXml(p.name)}" price="${p.price}" brand="${escapeXml(p.brand ?? '')}" stock="${p.stock ?? 0}"/>`,
-    )
+    .map((p) => {
+      const attrs = [
+        `id="${escapeXml(p.id)}"`,
+        `name="${escapeXml(p.name)}"`,
+        `price="${p.price}"`,
+        `brand="${escapeXml(p.brand ?? '')}"`,
+        `category="${escapeXml(p.category ?? '')}"`,
+        `stock="${p.stock ?? 0}"`,
+        `rating="${p.rating ?? 0}"`,
+        `review_count="${p.reviewCount ?? 0}"`,
+        `sold_count="${p.soldCount ?? 0}"`,
+      ];
+      const desc = p.shortDescription ? escapeXml(p.shortDescription) : '';
+      return `<product ${attrs.join(' ')}>${desc}</product>`;
+    })
     .join('\n');
 }
