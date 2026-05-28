@@ -23,6 +23,9 @@ import Input from '@/components/ui/Input/Input';
 import Badge from '@/components/ui/Badge/Badge';
 import RetrySection from '@/components/ui/RetrySection/RetrySection';
 import { useToast } from '@/components/ui/Toast/Toast';
+import Pagination from '@/components/ui/Pagination/Pagination';
+import PageSizeSelect from '@/components/ui/Pagination/PageSizeSelect';
+import { useClientPagination } from '@/hooks/useClientPagination';
 import {
   listAdminCoupons,
   createCoupon,
@@ -234,6 +237,9 @@ export default function AdminCouponsPage() {
       ? `${c.value}%`
       : `${new Intl.NumberFormat('vi-VN').format(c.value)} đ`;
 
+  const { pageItems, page, totalPages, pageSize, setPage, setPageSize } =
+    useClientPagination(coupons, 10);
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -245,11 +251,11 @@ export default function AdminCouponsPage() {
         <Input
           placeholder="Tìm theo mã..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setPage(0); }}
         />
         <select
           value={activeFilter}
-          onChange={(e) => setActiveFilter(e.target.value as 'ALL' | 'true' | 'false')}
+          onChange={(e) => { setActiveFilter(e.target.value as 'ALL' | 'true' | 'false'); setPage(0); }}
           className={styles.select}
           aria-label="Lọc trạng thái"
         >
@@ -258,6 +264,7 @@ export default function AdminCouponsPage() {
           <option value="false">Đã tắt</option>
         </select>
         <span className={styles.count}>{coupons.length} coupon</span>
+        <PageSizeSelect value={pageSize} onChange={setPageSize} />
       </div>
 
       <div className={styles.tableWrapper}>
@@ -352,6 +359,7 @@ export default function AdminCouponsPage() {
           </tbody>
         </table>
       </div>
+      {!loading && !failed && <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />}
 
       {/* Modal: Add / Edit */}
       {showModal && (

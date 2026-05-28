@@ -172,7 +172,7 @@ export default function AdminProductsPage() {
   );
 
   const { pageItems, page, totalPages, pageSize, setPage, setPageSize } =
-    useClientPagination(filtered, 10);
+    useClientPagination<AdminProduct>(filtered, 10);
 
   return (
     <div className={styles.page}>
