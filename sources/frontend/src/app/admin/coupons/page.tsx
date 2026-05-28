@@ -306,7 +306,7 @@ export default function AdminCouponsPage() {
             )}
             {!loading &&
               !failed &&
-              coupons.map((c) => (
+              pageItems.map((c) => (
                 <tr key={c.id}>
                   <td>
                     <strong>{c.code}</strong>

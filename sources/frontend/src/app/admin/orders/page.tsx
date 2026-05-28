@@ -3,10 +3,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from '../products/page.module.css';
-import Button from '@/components/ui/Button/Button';
 import Badge from '@/components/ui/Badge/Badge';
 import RetrySection from '@/components/ui/RetrySection/RetrySection';
-import { useToast } from '@/components/ui/Toast/Toast';
 import Pagination from '@/components/ui/Pagination/Pagination';
 import PageSizeSelect from '@/components/ui/Pagination/PageSizeSelect';
 import { useClientPagination } from '@/hooks/useClientPagination';
@@ -44,7 +42,6 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const router = useRouter();
-  const { showToast: _showToast } = useToast();
 
   const load = useCallback(async () => {
     setLoading(true);
