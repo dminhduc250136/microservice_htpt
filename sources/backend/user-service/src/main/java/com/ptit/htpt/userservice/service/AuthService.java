@@ -3,6 +3,8 @@ package com.ptit.htpt.userservice.service;
 import com.ptit.htpt.userservice.domain.UserEntity;
 import com.ptit.htpt.userservice.domain.UserMapper;
 import com.ptit.htpt.userservice.domain.VerificationTokenEntity;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.ptit.htpt.userservice.jwt.GoogleTokenVerifier;
 import com.ptit.htpt.userservice.jwt.JwtUtils;
 import com.ptit.htpt.userservice.messaging.event.UserEventEnvelope;
 import com.ptit.htpt.userservice.messaging.publisher.AccountEventPublisher;
@@ -12,6 +14,7 @@ import com.ptit.htpt.userservice.web.LoginRequest;
 import com.ptit.htpt.userservice.web.RegisterRequest;
 import jakarta.transaction.Transactional;
 import java.time.Duration;
+import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -38,6 +41,7 @@ public class AuthService {
     private final JwtUtils jwtUtils;
     private final VerificationTokenService verificationTokenService;
     private final AccountEventPublisher accountEventPublisher;
+    private final GoogleTokenVerifier googleTokenVerifier;
     private final String appBaseUrl;
 
     public AuthService(UserRepository userRepo,
@@ -45,12 +49,14 @@ public class AuthService {
                        JwtUtils jwtUtils,
                        VerificationTokenService verificationTokenService,
                        AccountEventPublisher accountEventPublisher,
+                       GoogleTokenVerifier googleTokenVerifier,
                        @Value("${APP_BASE_URL:http://localhost:3000}") String appBaseUrl) {
         this.userRepo = userRepo;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtils = jwtUtils;
         this.verificationTokenService = verificationTokenService;
         this.accountEventPublisher = accountEventPublisher;
+        this.googleTokenVerifier = googleTokenVerifier;
         this.appBaseUrl = appBaseUrl;
     }
 
@@ -101,6 +107,51 @@ public class AuthService {
         }
         String token = jwtUtils.issueToken(entity.id(), entity.username(), entity.fullName(), entity.roles());
         return new AuthResponseDto(token, UserMapper.toDto(entity));
+    }
+
+    /**
+     * Đăng nhập bằng Google ID token.
+     *
+     * Verify token với Google (chữ ký + audience), rồi:
+     * - Nếu email đã tồn tại: tự động liên kết — đăng nhập vào tài khoản đó (không đổi password).
+     * - Nếu chưa tồn tại: tạo user mới với email_verified=true (Google đã xác minh),
+     *   password_hash là chuỗi ngẫu nhiên không thể đăng nhập bằng password (cột NOT NULL).
+     *
+     * Phát JWT giống login thường — phần còn lại của hệ thống (gateway, cart merge) không phân biệt.
+     *
+     * @throws ResponseStatusException 401 nếu Google token không hợp lệ
+     * @throws ResponseStatusException 503 nếu Google chưa được cấu hình
+     */
+    public AuthResponseDto loginWithGoogle(String idToken) {
+        GoogleIdToken.Payload payload = googleTokenVerifier.verify(idToken);
+        String email = payload.getEmail();
+        Object nameClaim = payload.get("name");
+        String fullName = nameClaim != null ? nameClaim.toString() : null;
+
+        UserEntity user = userRepo.findByEmail(email)
+            .orElseGet(() -> createGoogleUser(email, fullName));
+
+        String token = jwtUtils.issueToken(user.id(), user.username(), user.fullName(), user.roles());
+        return new AuthResponseDto(token, UserMapper.toDto(user));
+    }
+
+    /**
+     * Tạo user mới từ thông tin Google đã verify.
+     * Username derive từ phần local của email + suffix ngẫu nhiên để đảm bảo unique.
+     * Password là chuỗi ngẫu nhiên đã hash — user không thể login bằng password
+     * (phải dùng Google hoặc luồng forgot-password để đặt mật khẩu sau).
+     */
+    private UserEntity createGoogleUser(String email, String fullName) {
+        String base = email.split("@")[0];
+        String username = base + "_" + UUID.randomUUID().toString().substring(0, 8);
+        String randomHash = passwordEncoder.encode(UUID.randomUUID().toString());
+        UserEntity entity = UserEntity.create(username, email, randomHash, "USER");
+        if (fullName != null && !fullName.isBlank()) {
+            entity.setFullName(fullName);
+        }
+        entity.setEmailVerified(true); // Google đã xác minh email
+        userRepo.save(entity);
+        return entity;
     }
 
     /**

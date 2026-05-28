@@ -106,6 +106,12 @@
   white-space: nowrap;
 }
 
+/* --- Google Sign-In button (GIS-rendered) --- */
+.googleButton {
+  display: flex;
+  justify-content: center;
+}
+
 /* --- Switch Auth --- */
 .switchAuth {
   text-align: center;

@@ -6,8 +6,9 @@ spring:
       globalcors:
         corsConfigurations:
           "[/**]":
-            allowedOrigins:
-              - "http://localhost:3000"
+            # Override qua CORS_ALLOWED_ORIGINS (CSV) cho môi trường khác localhost.
+            # VM: http://74.226.89.57:3000
+            allowedOrigins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
             allowedMethods:
               - GET
               - POST
@@ -220,6 +221,8 @@ app:
     public-endpoints:
       - { method: POST, pattern: "/api/users/auth/login" }
       - { method: POST, pattern: "/api/users/auth/register" }
+      # Login with Google — verify idToken ở user-service, không cần JWT của ta
+      - { method: POST, pattern: "/api/users/auth/google" }
       # Phase 27 MAIL-02: verify email + forgot/reset password đều public
       - { method: GET, pattern: "/api/users/auth/verify-email" }
       - { method: POST, pattern: "/api/users/auth/password/forgot" }
