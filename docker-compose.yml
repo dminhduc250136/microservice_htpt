@@ -154,6 +154,7 @@ services:
       - "8080:8080"
     environment:
       JWT_SECRET: ${JWT_SECRET}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
     depends_on:
       - user-service
       - product-service
@@ -180,6 +181,7 @@ services:
       DB_USER: user_svc
       DB_PASSWORD: user_svc_pw
       JWT_SECRET: ${JWT_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_USER: guest
       SPRING_RABBITMQ_PASS: guest
@@ -293,6 +295,7 @@ services:
       context: ./sources/frontend
       args:
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
     ports:
       - "3000:3000"
     depends_on:

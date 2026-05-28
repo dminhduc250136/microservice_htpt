@@ -62,6 +62,19 @@ public class AuthController {
     }
 
     /**
+     * POST /auth/google — đăng nhập bằng Google ID token.
+     *
+     * Public endpoint (không cần JWT). Backend verify idToken với Google, tự động
+     * liên kết theo email (hoặc tạo user mới), rồi phát JWT giống /auth/login.
+     *
+     * @return 200 OK với ApiResponse chứa accessToken và UserDto
+     */
+    @PostMapping("/google")
+    public ApiResponse<AuthResponseDto> google(@Valid @RequestBody GoogleLoginRequest request) {
+        return ApiResponse.of(200, "Login successful", authService.loginWithGoogle(request.idToken()));
+    }
+
+    /**
      * POST /auth/logout — client-side discard only (D-05).
      *
      * Backend không cần xử lý gì — token vẫn valid đến khi hết hạn.

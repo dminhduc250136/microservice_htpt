@@ -48,6 +48,23 @@ export async function login(body: LoginRequest): Promise<AuthResponse> {
   return data;
 }
 
+/**
+ * Đăng nhập bằng Google ID token.
+ *
+ * Frontend lấy idToken từ Google Identity Services, gửi về backend verify + link-by-email.
+ * Backend trả về cùng shape AuthResponse như login thường → tái dùng setTokens + setUserRole.
+ * skipAuth=true: luồng public, một token cũ/expired trong localStorage sẽ bị gateway 401
+ * trước khi tới user-service nếu vẫn gửi kèm.
+ */
+export async function loginWithGoogle(idToken: string): Promise<AuthResponse> {
+  const data = await httpPost<AuthResponse>('/api/users/auth/google', { idToken }, undefined, true);
+  setTokens(data.accessToken, data.refreshToken ?? undefined);
+  if (data.user?.roles) {
+    setUserRole(data.user.roles);
+  }
+  return data;
+}
+
 export async function register(body: RegisterRequest): Promise<AuthResponse> {
   const data = await httpPost<AuthResponse>('/api/users/auth/register', body);
   // D-04: auto-login ngay sau register — backend trả accessToken (refreshToken không cần)
