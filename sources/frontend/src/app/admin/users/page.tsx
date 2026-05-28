@@ -179,7 +179,7 @@ export default function AdminUsersPage() {
           </tbody>
         </table>
       </div>
-      {!loading && !failed && <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />}
+      {!loading && !failed && <Pagination page={page} totalPages={totalPages} onPageChange={setPage} alwaysShow />}
 
       {/* Edit modal — D-10 UserEditModal */}
       {editTarget && (
