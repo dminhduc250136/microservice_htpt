@@ -7,6 +7,9 @@ import Input from '@/components/ui/Input/Input';
 import Badge from '@/components/ui/Badge/Badge';
 import RetrySection from '@/components/ui/RetrySection/RetrySection';
 import { useToast } from '@/components/ui/Toast/Toast';
+import Pagination from '@/components/ui/Pagination/Pagination';
+import PageSizeSelect from '@/components/ui/Pagination/PageSizeSelect';
+import { useClientPagination } from '@/hooks/useClientPagination';
 import { listAdminUsers, patchAdminUser, deleteAdminUser, type AdminUserPatchBody } from '@/services/users';
 import type { User } from '@/types';
 
@@ -86,13 +89,19 @@ export default function AdminUsersPage() {
     }
   };
 
+  const { pageItems, page, totalPages, pageSize, setPage, setPageSize } =
+    useClientPagination(users, 10);
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
         <h1 className={styles.title}>Quản lý tài khoản</h1>
-        <span style={{ fontSize: 'var(--text-body-sm)', color: 'var(--on-surface-variant)' }}>
-          {users.length} tài khoản
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+          <span style={{ fontSize: 'var(--text-body-sm)', color: 'var(--on-surface-variant)' }}>
+            {users.length} tài khoản
+          </span>
+          <PageSizeSelect value={pageSize} onChange={setPageSize} />
+        </div>
       </div>
 
       <div className={styles.tableWrapper}>
@@ -136,7 +145,7 @@ export default function AdminUsersPage() {
               </tr>
             )}
             {/* Data rows */}
-            {!loading && !failed && users.map(u => (
+            {!loading && !failed && pageItems.map(u => (
               <tr key={u.id} style={{ borderBottom: '1px solid rgba(195,198,214,0.08)' }}>
                 {/* Họ tên: fullName fallback username per D-09 */}
                 <td className={styles.tdBold} style={{ padding: 'var(--space-3) var(--space-4)' }}>
@@ -170,6 +179,7 @@ export default function AdminUsersPage() {
           </tbody>
         </table>
       </div>
+      {!loading && !failed && <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />}
 
       {/* Edit modal — D-10 UserEditModal */}
       {editTarget && (

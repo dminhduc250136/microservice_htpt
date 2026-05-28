@@ -20,19 +20,38 @@ interface PaginationProps {
   onPageChange: (page: number) => void;
 }
 
-/** Sinh danh sách item hiển thị: số trang (1-based) hoặc 'gap' cho dấu "…". */
+/**
+ * Sinh danh sách item hiển thị: số trang (1-based) hoặc 'gap' cho dấu "…".
+ *
+ * Luôn giữ 2 trang ĐẦU (1, 2) và 2 trang CUỐI (total-1, total). Khi trang hiện
+ * tại nằm ngoài vùng đầu/cuối, chèn nó vào giữa kèm dấu "…" hai bên — bấm
+ * next/prev thì số ở giữa trượt theo. Ví dụ total=10:
+ *   current 1-3 → "1 2 3 … 9 10"   (gần đầu, current đã nằm trong 2 đầu)
+ *   current 6   → "1 2 … 6 … 9 10" (giữa)
+ *   current 8-10→ "1 2 … 8 9 10"   (gần cuối)
+ */
 function buildPages(current1: number, total: number): (number | 'gap')[] {
-  // Ít trang → hiện hết, không cần "…".
-  if (total <= 7) {
+  // Ít trang (≤6) → hiện hết, không cần "…".
+  if (total <= 6) {
     return Array.from({ length: total }, (_, i) => i + 1);
   }
-  const pages: (number | 'gap')[] = [1];
-  const start = Math.max(2, current1 - 1);
-  const end = Math.min(total - 1, current1 + 1);
-  if (start > 2) pages.push('gap');
-  for (let p = start; p <= end; p++) pages.push(p);
-  if (end < total - 1) pages.push('gap');
-  pages.push(total);
+
+  const pages: (number | 'gap')[] = [1, 2];
+
+  // current nằm sát đầu (≤4) → nối liền tới current, "…", 2 cuối.
+  if (current1 <= 4) {
+    for (let p = 3; p <= Math.max(3, current1); p++) pages.push(p);
+    pages.push('gap');
+  } else if (current1 >= total - 3) {
+    // current sát cuối → "…", các trang từ current tới sát 2 cuối.
+    pages.push('gap');
+    for (let p = Math.min(total - 2, current1); p <= total - 2; p++) pages.push(p);
+  } else {
+    // current ở giữa → "1 2 … [current] … (total-1) total".
+    pages.push('gap', current1, 'gap');
+  }
+
+  pages.push(total - 1, total);
   return pages;
 }
 

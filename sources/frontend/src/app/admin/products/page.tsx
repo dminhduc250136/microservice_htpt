@@ -7,6 +7,9 @@ import Input from '@/components/ui/Input/Input';
 import Badge from '@/components/ui/Badge/Badge';
 import RetrySection from '@/components/ui/RetrySection/RetrySection';
 import { useToast } from '@/components/ui/Toast/Toast';
+import Pagination from '@/components/ui/Pagination/Pagination';
+import PageSizeSelect from '@/components/ui/Pagination/PageSizeSelect';
+import { useClientPagination } from '@/hooks/useClientPagination';
 import type { Category } from '@/types';
 import {
   listAdminProducts, createProduct, updateProduct, deleteProduct, listAdminCategories,
@@ -168,6 +171,9 @@ export default function AdminProductsPage() {
     !search || p.name.toLowerCase().includes(search.toLowerCase()),
   );
 
+  const { pageItems, page, totalPages, pageSize, setPage, setPageSize } =
+    useClientPagination<AdminProduct>(filtered, 10);
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -179,7 +185,7 @@ export default function AdminProductsPage() {
         <Input
           placeholder="Tìm sản phẩm..."
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={e => { setSearch(e.target.value); setPage(0); }}
           icon={
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -187,6 +193,7 @@ export default function AdminProductsPage() {
           }
         />
         <span className={styles.count}>{filtered.length} sản phẩm</span>
+        <PageSizeSelect value={pageSize} onChange={setPageSize} />
       </div>
 
       <div className={styles.tableWrapper}>
@@ -229,7 +236,7 @@ export default function AdminProductsPage() {
               </tr>
             )}
 
-            {!loading && !failed && filtered.map(p => (
+            {!loading && !failed && pageItems.map(p => (
               <tr key={p.id}>
                 <td>
                   <div className={styles.productCell}>
@@ -266,6 +273,7 @@ export default function AdminProductsPage() {
           </tbody>
         </table>
       </div>
+      {!loading && !failed && <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />}
 
       {/* Modal: Add / Edit Product */}
       {showAddModal && (
