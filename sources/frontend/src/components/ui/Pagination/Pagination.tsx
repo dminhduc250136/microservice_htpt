@@ -18,6 +18,12 @@ interface PaginationProps {
   totalPages: number;
   /** Gọi khi user chọn trang khác — nhận index 0-based. */
   onPageChange: (page: number) => void;
+  /**
+   * Luôn render thanh phân trang kể cả khi chỉ có 1 trang (mặc định false → ẩn
+   * khi totalPages<=1). Bật cho bảng admin để UI ổn định: 1 trang vẫn hiện nút
+   * "1" + Trước/Sau (cả hai tự disable vì page là first & last cùng lúc).
+   */
+  alwaysShow?: boolean;
 }
 
 /**
@@ -55,12 +61,14 @@ function buildPages(current1: number, total: number): (number | 'gap')[] {
   return pages;
 }
 
-export default function Pagination({ page, totalPages, onPageChange }: PaginationProps) {
-  // Không có gì để phân trang.
-  if (totalPages <= 1) return null;
+export default function Pagination({ page, totalPages, onPageChange, alwaysShow = false }: PaginationProps) {
+  // Không có gì để phân trang → ẩn, trừ khi alwaysShow (admin muốn UI ổn định).
+  if (totalPages <= 1 && !alwaysShow) return null;
 
+  // Kẹp về tối thiểu 1 trang để render an toàn khi danh sách rỗng/1 trang.
+  const safeTotal = Math.max(1, totalPages);
   const current1 = page + 1; // 1-based để hiển thị
-  const items = buildPages(current1, totalPages);
+  const items = buildPages(current1, safeTotal);
 
   return (
     <nav className={styles.pagination} aria-label="Phân trang">
@@ -100,7 +108,7 @@ export default function Pagination({ page, totalPages, onPageChange }: Paginatio
       <button
         className={styles.navBtn}
         onClick={() => onPageChange(page + 1)}
-        disabled={page >= totalPages - 1}
+        disabled={page >= safeTotal - 1}
         aria-label="Trang sau"
       >
         <span className={styles.navLabel}>Sau</span>
