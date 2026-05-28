@@ -1,0 +1,25 @@
+.wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-body-sm);
+  color: var(--on-surface-variant);
+}
+
+.label {
+  white-space: nowrap;
+}
+
+.select {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-body-sm);
+  border: 1.5px solid rgba(195, 198, 214, 0.25);
+  border-radius: var(--radius-md);
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
+  cursor: pointer;
+}
+
+.select:hover {
+  border-color: var(--primary);
+}

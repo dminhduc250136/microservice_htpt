@@ -23,34 +23,35 @@ interface PaginationProps {
 /**
  * Sinh danh sách item hiển thị: số trang (1-based) hoặc 'gap' cho dấu "…".
  *
- * Tối đa 5 nút SỐ hiển thị. Luôn giữ trang đầu (1) + trang cuối (total) để user
- * nhảy nhanh; cửa sổ 3 trang giữa trượt theo trang hiện tại. Các trang ẩn nằm
- * trong dấu "…". Ví dụ total=10: gần đầu "1 2 3 4 … 10", ở giữa "1 … 5 6 7 … 10",
- * gần cuối "1 … 7 8 9 10".
+ * Luôn giữ 2 trang ĐẦU (1, 2) và 2 trang CUỐI (total-1, total). Khi trang hiện
+ * tại nằm ngoài vùng đầu/cuối, chèn nó vào giữa kèm dấu "…" hai bên — bấm
+ * next/prev thì số ở giữa trượt theo. Ví dụ total=10:
+ *   current 1-3 → "1 2 3 … 9 10"   (gần đầu, current đã nằm trong 2 đầu)
+ *   current 6   → "1 2 … 6 … 9 10" (giữa)
+ *   current 8-10→ "1 2 … 8 9 10"   (gần cuối)
  */
 function buildPages(current1: number, total: number): (number | 'gap')[] {
-  // Ít trang (≤5) → hiện hết, không cần "…".
-  if (total <= 5) {
+  // Ít trang (≤6) → hiện hết, không cần "…".
+  if (total <= 6) {
     return Array.from({ length: total }, (_, i) => i + 1);
   }
 
-  // Cửa sổ 3 trang giữa, kẹp trong [2, total-1] để không đè trang đầu/cuối.
-  let start = current1 - 1;
-  let end = current1 + 1;
-  if (start < 2) {
-    start = 2;
-    end = 4;
-  }
-  if (end > total - 1) {
-    end = total - 1;
-    start = total - 3;
+  const pages: (number | 'gap')[] = [1, 2];
+
+  // current nằm sát đầu (≤4) → nối liền tới current, "…", 2 cuối.
+  if (current1 <= 4) {
+    for (let p = 3; p <= Math.max(3, current1); p++) pages.push(p);
+    pages.push('gap');
+  } else if (current1 >= total - 3) {
+    // current sát cuối → "…", các trang từ current tới sát 2 cuối.
+    pages.push('gap');
+    for (let p = Math.min(total - 2, current1); p <= total - 2; p++) pages.push(p);
+  } else {
+    // current ở giữa → "1 2 … [current] … (total-1) total".
+    pages.push('gap', current1, 'gap');
   }
 
-  const pages: (number | 'gap')[] = [1];
-  if (start > 2) pages.push('gap');
-  for (let p = start; p <= end; p++) pages.push(p);
-  if (end < total - 1) pages.push('gap');
-  pages.push(total);
+  pages.push(total - 1, total);
   return pages;
 }
 

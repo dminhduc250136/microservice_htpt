@@ -7,6 +7,9 @@ import Button from '@/components/ui/Button/Button';
 import Badge from '@/components/ui/Badge/Badge';
 import RetrySection from '@/components/ui/RetrySection/RetrySection';
 import { useToast } from '@/components/ui/Toast/Toast';
+import Pagination from '@/components/ui/Pagination/Pagination';
+import PageSizeSelect from '@/components/ui/Pagination/PageSizeSelect';
+import { useClientPagination } from '@/hooks/useClientPagination';
 import { listAdminOrders } from '@/services/orders';
 
 // Backend AdminOrderDto shape
@@ -59,10 +62,14 @@ export default function AdminOrdersPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  const { pageItems, page, totalPages, pageSize, setPage, setPageSize } =
+    useClientPagination(orders, 10);
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
         <h1 className={styles.title}>Quản lý đơn hàng</h1>
+        <PageSizeSelect value={pageSize} onChange={setPageSize} />
       </div>
 
       <div className={styles.tableWrapper}>
@@ -106,7 +113,7 @@ export default function AdminOrdersPage() {
               </tr>
             )}
 
-            {!loading && !failed && orders.map(o => (
+            {!loading && !failed && pageItems.map(o => (
               <tr key={o.id}>
                 <td className={styles.tdBold}>{o.id.slice(0, 8)}</td>
                 <td>{o.userId.slice(0, 8)}</td>
@@ -132,6 +139,7 @@ export default function AdminOrdersPage() {
           </tbody>
         </table>
       </div>
+      {!loading && !failed && <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />}
     </div>
   );
 }

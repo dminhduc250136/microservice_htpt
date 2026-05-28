@@ -20,10 +20,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import styles from './page.module.css';
-import Button from '@/components/ui/Button/Button';
 import Badge from '@/components/ui/Badge/Badge';
 import RetrySection from '@/components/ui/RetrySection/RetrySection';
 import { useToast } from '@/components/ui/Toast/Toast';
+import Pagination from '@/components/ui/Pagination/Pagination';
+import PageSizeSelect from '@/components/ui/Pagination/PageSizeSelect';
+import type { PageSize } from '@/hooks/useClientPagination';
 import {
   listAdminReviews,
   setReviewVisibility,
@@ -54,7 +56,8 @@ function formatDate(iso: string): string {
 
 export default function AdminReviewsPage() {
   const [page, setPage] = useState(0);
-  const [size] = useState(20);
+  const [pageSize, setPageSize] = useState<PageSize>(10);
+  const size = pageSize === 'all' ? 1000 : pageSize;
   const [filter, setFilter] = useState<FilterValue>('all');
   const [reviews, setReviews] = useState<AdminReview[]>([]);
   const [meta, setMeta] = useState<{
@@ -131,6 +134,7 @@ export default function AdminReviewsPage() {
           {meta && (
             <span className={styles.count}>{meta.totalElements} đánh giá</span>
           )}
+          <PageSizeSelect value={pageSize} onChange={(s) => { setPageSize(s); setPage(0); }} />
         </div>
       </div>
 
@@ -230,26 +234,8 @@ export default function AdminReviewsPage() {
         </div>
       )}
 
-      {meta && meta.totalPages > 1 && (
-        <div className={styles.paginationRow}>
-          <Button
-            variant="secondary"
-            disabled={page === 0}
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-          >
-            Trước
-          </Button>
-          <span>
-            Trang {page + 1} / {meta.totalPages}
-          </span>
-          <Button
-            variant="secondary"
-            disabled={meta.isLast}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Sau
-          </Button>
-        </div>
+      {meta && (
+        <Pagination page={page} totalPages={meta.totalPages} onPageChange={setPage} />
       )}
     </div>
   );
