@@ -20,15 +20,33 @@ interface PaginationProps {
   onPageChange: (page: number) => void;
 }
 
-/** Sinh danh sách item hiển thị: số trang (1-based) hoặc 'gap' cho dấu "…". */
+/**
+ * Sinh danh sách item hiển thị: số trang (1-based) hoặc 'gap' cho dấu "…".
+ *
+ * Tối đa 5 nút SỐ hiển thị. Luôn giữ trang đầu (1) + trang cuối (total) để user
+ * nhảy nhanh; cửa sổ 3 trang giữa trượt theo trang hiện tại. Các trang ẩn nằm
+ * trong dấu "…". Ví dụ total=10: gần đầu "1 2 3 4 … 10", ở giữa "1 … 5 6 7 … 10",
+ * gần cuối "1 … 7 8 9 10".
+ */
 function buildPages(current1: number, total: number): (number | 'gap')[] {
-  // Ít trang → hiện hết, không cần "…".
-  if (total <= 7) {
+  // Ít trang (≤5) → hiện hết, không cần "…".
+  if (total <= 5) {
     return Array.from({ length: total }, (_, i) => i + 1);
   }
+
+  // Cửa sổ 3 trang giữa, kẹp trong [2, total-1] để không đè trang đầu/cuối.
+  let start = current1 - 1;
+  let end = current1 + 1;
+  if (start < 2) {
+    start = 2;
+    end = 4;
+  }
+  if (end > total - 1) {
+    end = total - 1;
+    start = total - 3;
+  }
+
   const pages: (number | 'gap')[] = [1];
-  const start = Math.max(2, current1 - 1);
-  const end = Math.min(total - 1, current1 + 1);
   if (start > 2) pages.push('gap');
   for (let p = start; p <= end; p++) pages.push(p);
   if (end < total - 1) pages.push('gap');
