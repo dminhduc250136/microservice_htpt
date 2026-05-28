@@ -136,6 +136,8 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   margin-bottom: var(--space-1);
+  /* Luôn chiếm đúng 1 dòng (kể cả khi mô tả rỗng) để các card cao bằng nhau. */
+  min-height: calc(var(--text-body-sm) * var(--leading-normal));
 }
 
 /* --- Price Row --- */
