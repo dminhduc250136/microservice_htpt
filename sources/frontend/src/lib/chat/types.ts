@@ -9,6 +9,11 @@ export interface ChatProduct {
   price: number;
   brand: string | null;
   stock: number | null;
+  shortDescription: string | null;
+  category: string | null;
+  rating: number | null;
+  reviewCount: number | null;
+  soldCount: number | null;
 }
 
 export interface ChatMessageRow {
