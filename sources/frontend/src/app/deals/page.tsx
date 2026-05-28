@@ -1,31 +1,36 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import PageHero from '@/components/ui/PageHero/PageHero';
 import ProductCard from '@/components/ui/ProductCard/ProductCard';
 import RetrySection from '@/components/ui/RetrySection/RetrySection';
+import Pagination from '@/components/ui/Pagination/Pagination';
 import { listProducts } from '@/services/products';
 import type { Product } from '@/types';
 import styles from './page.module.css';
+
+const PAGE_SIZE = 9; // 3 hàng × 3 cột
 
 export default function DealsPage() {
   const [deals, setDeals] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  const [page, setPage] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
     setFailed(false);
     try {
-      const resp = await listProducts({ page: 0, size: 24, sort: 'createdAt,desc' }).catch(() =>
-        listProducts({ page: 0, size: 24 }),
+      const resp = await listProducts({ page: 0, size: 100, sort: 'createdAt,desc' }).catch(() =>
+        listProducts({ page: 0, size: 100 }),
       );
       // Backend chưa có filter "đang giảm giá" — lọc client theo originalPrice > price.
       const onSale = (resp?.content ?? []).filter(
         (p) => p.originalPrice != null && p.originalPrice > p.price,
       );
       setDeals(onSale);
+      setPage(0);
     } catch {
       setFailed(true);
       setDeals([]);
@@ -37,6 +42,19 @@ export default function DealsPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const totalPages = Math.ceil(deals.length / PAGE_SIZE);
+  const pageItems = useMemo(
+    () => deals.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE),
+    [deals, page],
+  );
+
+  const handlePageChange = (next: number) => {
+    setPage(next);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   return (
     <main>
@@ -54,7 +72,7 @@ export default function DealsPage() {
 
           {loading ? (
             <div className={styles.grid}>
-              {[...Array(8)].map((_, i) => (
+              {[...Array(PAGE_SIZE)].map((_, i) => (
                 <div key={i} className={`${styles.skeleton} skeleton`} />
               ))}
             </div>
@@ -67,11 +85,14 @@ export default function DealsPage() {
               <Link href="/products" className={styles.emptyCta}>Xem tất cả sản phẩm</Link>
             </div>
           ) : (
-            <div className={styles.grid}>
-              {deals.map((p) => (
-                <ProductCard key={p.id} product={p} />
-              ))}
-            </div>
+            <>
+              <div className={styles.grid}>
+                {pageItems.map((p) => (
+                  <ProductCard key={p.id} product={p} />
+                ))}
+              </div>
+              <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
+            </>
           )}
         </div>
       </section>
