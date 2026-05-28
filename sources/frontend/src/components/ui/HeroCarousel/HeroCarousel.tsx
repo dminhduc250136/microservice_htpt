@@ -29,11 +29,11 @@ interface Slide {
 /** 5 slide nội dung banner. Sửa text/ảnh/link tại đây. */
 const SLIDES: Slide[] = [
   {
-    badge: 'Bộ sưu tập Thu Đông 2024',
-    title: 'Nghệ thuật',
-    highlight: 'chế tác thủ công',
+    badge: 'Công nghệ chính hãng',
+    title: 'Laptop & thiết bị',
+    highlight: 'cho mọi nhu cầu',
     description:
-      'Khám phá bộ sưu tập thu đông mới nhất với chất liệu cao cấp và thiết kế tinh xảo từ những nghệ nhân hàng đầu.',
+      'Từ laptop văn phòng đến gaming, điện thoại flagship và phụ kiện — tất cả chính hãng, đầy đủ hóa đơn VAT và bảo hành toàn quốc.',
     ctaLabel: 'Khám phá ngay',
     ctaHref: '/products',
     image: '/hero/hero-primary.webp',
@@ -43,27 +43,27 @@ const SLIDES: Slide[] = [
     title: 'Giảm đến 40%',
     highlight: 'cho đơn hàng đầu tiên',
     description:
-      'Đăng ký thành viên hôm nay để nhận ưu đãi độc quyền và miễn phí vận chuyển toàn quốc.',
+      'Đăng ký thành viên hôm nay để nhận ưu đãi độc quyền trên laptop, điện thoại và miễn phí vận chuyển toàn quốc.',
     ctaLabel: 'Xem ưu đãi',
     ctaHref: '/deals',
     image: '/hero/hero-secondary.webp',
   },
   {
     badge: 'Hàng mới về',
-    title: 'Phụ kiện công nghệ',
-    highlight: 'đẳng cấp 2024',
+    title: 'Sản phẩm công nghệ',
+    highlight: 'mới nhất 2024',
     description:
-      'Cập nhật những sản phẩm công nghệ mới nhất — bảo hành chính hãng, giao nhanh trong 24h.',
+      'Cập nhật những mẫu laptop, điện thoại và phụ kiện mới nhất — bảo hành chính hãng, giao nhanh trong 24h.',
     ctaLabel: 'Mua ngay',
     ctaHref: '/products',
     image: '/hero/hero-primary.webp',
   },
   {
-    badge: 'Tuyển chọn kỹ lưỡng',
-    title: 'Chất lượng',
-    highlight: 'làm nên khác biệt',
+    badge: 'Cam kết chất lượng',
+    title: 'Hàng chính hãng',
+    highlight: 'kiểm tra trước khi giao',
     description:
-      'Mỗi sản phẩm đều qua kiểm định nghiêm ngặt — cam kết hoàn tiền nếu không hài lòng.',
+      'Mọi sản phẩm đều nguyên seal, kiểm tra kỹ trước khi giao — đổi mới trong 7 ngày nếu lỗi nhà sản xuất.',
     ctaLabel: 'Tìm hiểu thêm',
     ctaHref: '/about',
     image: '/hero/hero-secondary.webp',
@@ -71,9 +71,9 @@ const SLIDES: Slide[] = [
   {
     badge: 'Thành viên thân thiết',
     title: 'Tích điểm',
-    highlight: 'đổi quà hấp dẫn',
+    highlight: 'đổi quà công nghệ',
     description:
-      'Mỗi giao dịch đều được tích điểm — đổi lấy voucher và quà tặng độc quyền cho thành viên.',
+      'Mỗi giao dịch đều được tích điểm — đổi lấy voucher, phụ kiện và quà tặng độc quyền cho thành viên.',
     ctaLabel: 'Đăng ký ngay',
     ctaHref: '/register',
     image: '/hero/hero-primary.webp',

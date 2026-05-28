@@ -9,11 +9,11 @@ export default function Footer() {
         {/* Brand */}
         <div className={styles.brand}>
           <div className={styles.logo}>
-            <span className={styles.logoText}>The Digital</span>
-            <span className={styles.logoAccent}>Atélier</span>
+            <span className={styles.logoText}>Lap</span>
+            <span className={styles.logoAccent}>Tech</span>
           </div>
           <p className={styles.tagline}>
-            Trải nghiệm mua sắm kỹ thuật số đẳng cấp. Chúng tôi mang đến sự tinh tế trong từng sản phẩm và niềm tin trong từng giao dịch.
+            LapTech Store — laptop, điện thoại và phụ kiện công nghệ chính hãng. Giá tốt, bảo hành uy tín, giao hàng nhanh toàn quốc.
           </p>
         </div>
 
@@ -42,7 +42,7 @@ export default function Footer() {
       {/* Bottom Bar */}
       <div className={styles.bottomBar}>
         <div className={styles.bottomContainer}>
-          <p className={styles.copyright}>© 2024 The Digital Atélier. Tất cả quyền được bảo lưu.</p>
+          <p className={styles.copyright}>© 2024 LapTech Store. Tất cả quyền được bảo lưu.</p>
         </div>
       </div>
     </footer>
