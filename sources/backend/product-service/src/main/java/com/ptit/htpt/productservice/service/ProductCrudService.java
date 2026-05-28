@@ -1,5 +1,7 @@
 package com.ptit.htpt.productservice.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ptit.htpt.productservice.domain.CategoryEntity;
 import com.ptit.htpt.productservice.domain.CategoryMapper;
 import com.ptit.htpt.productservice.domain.ProductEntity;
@@ -28,10 +30,23 @@ import org.springframework.web.server.ResponseStatusException;
 public class ProductCrudService {
   private final ProductRepository productRepo;
   private final CategoryRepository categoryRepo;
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   public ProductCrudService(ProductRepository productRepo, CategoryRepository categoryRepo) {
     this.productRepo = productRepo;
     this.categoryRepo = categoryRepo;
+  }
+
+  /** Parse specifications JSON (TEXT) → List<SpecItem>; trả rỗng nếu null/lỗi. */
+  private static List<SpecItem> parseSpecifications(String json) {
+    if (json == null || json.isBlank()) {
+      return Collections.emptyList();
+    }
+    try {
+      return OBJECT_MAPPER.readValue(json, new TypeReference<List<SpecItem>>() {});
+    } catch (Exception e) {
+      return Collections.emptyList();
+    }
   }
 
   public Map<String, Object> listProducts(int page, int size, String sort, boolean includeDeleted) {
@@ -198,7 +213,7 @@ public class ProductCrudService {
         product.id(),
         product.name(),
         product.slug(),
-        "",                                            // description default
+        product.description() != null ? product.description() : "",
         product.shortDescription() != null ? product.shortDescription() : "",
         product.price(),
         product.originalPrice(),
@@ -209,9 +224,11 @@ public class ProductCrudService {
         product.brand(),
         product.avgRating() != null ? product.avgRating() : BigDecimal.ZERO,
         product.reviewCount(),
+        product.soldCount(),
         product.stock(),                               // D-02: đọc từ ProductEntity.stock (Phase 8 PERSIST-01)
         product.status(),
         Collections.emptyList(),                       // tags default
+        parseSpecifications(product.specifications()),
         product.createdAt(),
         product.updatedAt()
     );
@@ -296,12 +313,16 @@ public class ProductCrudService {
       String brand,
       BigDecimal rating,
       int reviewCount,
+      int soldCount,
       int stock,
       String status,
       List<String> tags,
+      List<SpecItem> specifications,
       Instant createdAt,
       Instant updatedAt
   ) {}
+
+  public record SpecItem(String label, String value) {}
 
   public record CategoryRef(
       String id,
