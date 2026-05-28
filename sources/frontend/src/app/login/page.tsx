@@ -86,6 +86,10 @@ function LoginPageContent() {
     window.google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
       callback: handleGoogleCredential,
+      // Tắt FedCM cho nút → account chooser mở dạng popup cửa sổ thật (trình duyệt
+      // tự căn GIỮA màn hình) thay vì khung FedCM neo góc phải. Vẫn trả ID token.
+      use_fedcm_for_button: false,
+      ux_mode: 'popup',
     });
     window.google.accounts.id.renderButton(googleButtonRef.current, {
       type: 'standard',
