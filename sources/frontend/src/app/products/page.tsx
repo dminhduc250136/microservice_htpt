@@ -99,9 +99,9 @@ function ProductsPageContent() {
           : sortBy === 'newest'
           ? 'createdAt,desc'
           : sortBy === 'rating'
-          ? 'rating,desc'
+          ? 'avgRating,desc'
           : sortBy === 'popular'
-          ? 'reviewCount,desc'
+          ? 'soldCount,desc'
           : undefined;
       const resp = await listProducts({
         page,
