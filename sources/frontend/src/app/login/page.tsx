@@ -51,6 +51,14 @@ function LoginPageContent() {
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const googleButtonRef = useRef<HTMLDivElement>(null);
 
+  // After client-side navigation, the GIS script may already be present.
+  // If so, mark it as loaded to trigger button rendering without needing a full refresh.
+  useEffect(() => {
+    if (!scriptLoaded && typeof window !== 'undefined' && window.google) {
+      setScriptLoaded(true);
+    }
+  }, [scriptLoaded]);
+
   // Điều hướng sau khi đăng nhập thành công — dùng chung cho cả password và Google.
   const finishLogin = useCallback(
     async (data: { user: { id: string; email: string; username?: string; roles?: string; role?: string } }) => {
@@ -91,6 +99,8 @@ function LoginPageContent() {
       use_fedcm_for_button: false,
       ux_mode: 'popup',
     });
+    // Re-render safely in case the container has stale content after navigation.
+    googleButtonRef.current.innerHTML = '';
     window.google.accounts.id.renderButton(googleButtonRef.current, {
       type: 'standard',
       theme: 'outline',
