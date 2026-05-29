@@ -105,7 +105,7 @@ export default function FeaturedCarousel({ products }: FeaturedCarouselProps) {
       >
         {products.map((product) => (
           <div key={product.id} className={styles.featuredCard}>
-            <ProductCard product={product} />
+            <ProductCard product={product} variant="featured" />
           </div>
         ))}
       </div>
