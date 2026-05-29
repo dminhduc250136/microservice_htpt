@@ -11,6 +11,7 @@ import { formatPrice } from '@/services/api';
 interface ProductCardProps {
   product: Product;
   className?: string;
+  variant?: 'default' | 'featured';
 }
 
 function getTagVariant(tag: string): 'sale' | 'new' | 'hot' | 'default' {
@@ -21,11 +22,12 @@ function getTagVariant(tag: string): 'sale' | 'new' | 'hot' | 'default' {
   return 'default';
 }
 
-export default function ProductCard({ product, className = '' }: ProductCardProps) {
+export default function ProductCard({ product, className = '', variant = 'default' }: ProductCardProps) {
   const hasDiscount = product.originalPrice && product.discount;
+  const variantClass = variant === 'featured' ? styles.cardFeatured : '';
 
   return (
-    <div className={`${styles.card} ${className}`}>
+    <div className={`${styles.card} ${variantClass} ${className}`.trim()}>
       {/* Stretched link for card navigation */}
       <Link href={`/products/${product.slug}`} className={styles.cardLink} aria-label={product.name} />
 
@@ -69,9 +71,7 @@ export default function ProductCard({ product, className = '' }: ProductCardProp
 
       {/* Content Section */}
       <div className={styles.content}>
-        {product.category?.name && (
-          <span className={styles.category}>{product.category.name}</span>
-        )}
+        <span className={styles.category}>{product.category?.name ?? ''}</span>
         <h3 className={styles.name}>{product.name}</h3>
         <p className={styles.description}>{product.shortDescription}</p>
 
