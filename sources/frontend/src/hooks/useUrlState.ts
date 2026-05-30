@@ -70,5 +70,32 @@ export function useUrlState() {
     [params, pathname, router],
   );
 
-  return { get, getNum, getAll, patch, patchArray };
+  /**
+   * Patch scalar + array trong 1 lần router.replace để tránh 2 fetch liên tiếp
+   * (vd. brand multi-select + reset page=0 cùng lúc). Truyền `arrays` với value
+   * `string[]` (rỗng → xoá key).
+   */
+  const patchMany = useCallback(
+    (
+      scalars: Record<string, string | number | boolean | null | undefined>,
+      arrays: Record<string, string[]>,
+    ) => {
+      const next = new URLSearchParams(params.toString());
+      for (const [k, v] of Object.entries(scalars)) {
+        if (v === null || v === undefined || v === '') next.delete(k);
+        else next.set(k, String(v));
+      }
+      for (const [k, vs] of Object.entries(arrays)) {
+        next.delete(k);
+        for (const v of vs) {
+          if (v != null && v !== '') next.append(k, v);
+        }
+      }
+      const qs = next.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    },
+    [params, pathname, router],
+  );
+
+  return { get, getNum, getAll, patch, patchArray, patchMany };
 }
