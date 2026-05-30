@@ -102,7 +102,9 @@ export default function ProfileShell({ children }: { children: React.ReactNode }
         <div className={styles.layout}>
           <aside className={styles.sidebar}>
             <div className={styles.userCard}>
-              <div className={styles.avatar}>{initial}</div>
+              {user?.avatarUrl
+                ? <img src={user.avatarUrl} alt="" className={styles.avatar} />
+                : <div className={styles.avatar}>{initial}</div>}
               <div>
                 <p className={styles.userName}>{displayName}</p>
                 <p className={styles.userEmail}>{displayEmail}</p>

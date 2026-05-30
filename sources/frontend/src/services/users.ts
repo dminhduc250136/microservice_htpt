@@ -80,6 +80,28 @@ export function patchMe(body: UpdateMeBody): Promise<User> {
   return httpPatch<User>('/api/users/me', body);
 }
 
+/**
+ * Upload ảnh đại diện. BE trả ApiResponse<UserDto> (không phải {url}) — không
+ * reuse được helper uploadImage (helper đó unwrap .data.url). Inline fetch để lấy User.
+ */
+export async function uploadMyAvatar(file: File): Promise<User> {
+  const { getAccessToken } = await import('./token');
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+  const token = getAccessToken();
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch(`${baseUrl}/api/users/me/avatar`, {
+    method: 'POST',
+    body: form,
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+  if (!res.ok) {
+    throw new Error(`Upload avatar failed: ${res.status}`);
+  }
+  const env = await res.json();
+  return env?.data as User;
+}
+
 // ============================================================
 // Phase 11 / ACCT-05. Address book CRUD.
 // Endpoints backend: /api/users/me/addresses/**

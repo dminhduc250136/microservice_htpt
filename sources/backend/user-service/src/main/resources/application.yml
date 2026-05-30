@@ -29,6 +29,12 @@ spring:
     password: ${SPRING_RABBITMQ_PASS:guest}
     publisher-confirm-type: correlated
     publisher-returns: true
+  # Multipart limits cho POST /users/me/avatar — phải lớn hơn MAX_SIZE_BYTES (5MB) ở ImageStorageService.
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 6MB
+      max-request-size: 8MB
 
 server:
   port: 8080
@@ -53,6 +59,11 @@ app:
     # OAuth Client ID (Web application) từ Google Cloud Console — dùng làm audience khi verify ID token.
     # Để trống thì endpoint /auth/google trả 503; login bằng password vẫn hoạt động.
     client-id: ${GOOGLE_CLIENT_ID:}
+  # Avatar upload (hướng a: user-service tự lưu file). Dev mặc định ./uploads (relative cwd container);
+  # production dùng env UPLOADS_DIR=/uploads + docker volume mount.
+  uploads:
+    dir: ${UPLOADS_DIR:./uploads}
+    public-url-prefix: /api/users/uploads
 
 ---
 spring:

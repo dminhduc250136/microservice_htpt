@@ -7,12 +7,13 @@ import styles from './Header.module.css';
 import { useAuth } from '@/providers/AuthProvider';
 import { logout as apiLogout } from '@/services/auth';
 import { useCart } from '@/hooks/useCart';
+import { getMe } from '@/services/users';
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, login } = useAuth();
   const { data: cartItems = [] } = useCart();
   const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
   const router = useRouter();
@@ -35,6 +36,18 @@ export default function Header() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Hydrate avatarUrl sau login: AuthResponse từ /auth/login không trả avatarUrl,
+  // nên gọi getMe() 1 lần khi có user nhưng chưa biết avatarUrl (undefined). Sau khi
+  // settings.upload set xong (avatarUrl="…") hoặc xóa (null) thì không fetch nữa.
+  useEffect(() => {
+    if (!isAuthenticated || !user || user.avatarUrl !== undefined) return;
+    let alive = true;
+    getMe()
+      .then(me => { if (alive) login({ ...user, avatarUrl: me.avatarUrl ?? null }); })
+      .catch(() => { if (alive) login({ ...user, avatarUrl: null }); });
+    return () => { alive = false; };
+  }, [isAuthenticated, user, login]);
 
   const handleLogout = () => {
     apiLogout();
@@ -96,7 +109,9 @@ export default function Header() {
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                 aria-label="Menu tài khoản"
               >
-                <div className={styles.userAvatar}>{initials}</div>
+                {user.avatarUrl
+                  ? <img src={user.avatarUrl} alt="" className={styles.userAvatar} />
+                  : <div className={styles.userAvatar}>{initials}</div>}
               </button>
               {isUserMenuOpen && (
                 <div className={styles.dropdown}>

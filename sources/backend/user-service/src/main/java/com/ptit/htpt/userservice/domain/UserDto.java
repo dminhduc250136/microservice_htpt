@@ -8,6 +8,7 @@ import java.time.Instant;
  *
  * Phase 7 / Plan 03 (D-04): Thêm fullName + phone fields (nullable).
  * Phase 10 / Plan 10-01 (D-06): Thêm hasAvatar boolean — Phase 10 luôn false (avatar defer per D-08).
+ * Avatar wire-up: thêm avatarUrl; hasAvatar = (avatarUrl != null).
  */
 public record UserDto(
     String id,
@@ -16,7 +17,8 @@ public record UserDto(
     String roles,
     String fullName,      // nullable — D-04
     String phone,         // nullable — D-04
-    boolean hasAvatar,    // D-06: Phase 10 luôn false (avatar defer per D-08)
+    String avatarUrl,     // nullable — URL public dạng /api/users/uploads/avatars/<file>
+    boolean hasAvatar,    // = (avatarUrl != null)
     Instant createdAt,
     Instant updatedAt
 ) {}
