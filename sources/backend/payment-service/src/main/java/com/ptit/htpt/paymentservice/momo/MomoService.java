@@ -109,10 +109,6 @@ public class MomoService {
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
 
-    // DEBUG temp: log ipnUrl + redirectUrl thực gửi sang MoMo để chẩn đoán IPN không về.
-    log.info("[MOMO-CREATE-DEBUG] requestId={} ipnUrl={} redirectUrl={} payUrl={}",
-        paymentSessionId, config.ipnUrl(), config.returnUrl(), config.payUrl());
-
     try {
       @SuppressWarnings("unchecked")
       var response = restTemplate.postForEntity(
@@ -120,9 +116,6 @@ public class MomoService {
       if (response.getBody() == null) {
         throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "MoMo create session trả body rỗng");
       }
-      // DEBUG temp: log MoMo response code/message để biết MoMo accept/reject.
-      log.info("[MOMO-CREATE-DEBUG] response resultCode={} message={}",
-          response.getBody().get("resultCode"), response.getBody().get("message"));
       Object resultCode = response.getBody().get("resultCode");
       if (Integer.valueOf(0).equals(resultCode) || "0".equals(String.valueOf(resultCode))) {
         return String.valueOf(response.getBody().get("payUrl"));
