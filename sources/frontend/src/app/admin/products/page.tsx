@@ -9,7 +9,7 @@ import RetrySection from '@/components/ui/RetrySection/RetrySection';
 import { useToast } from '@/components/ui/Toast/Toast';
 import Pagination from '@/components/ui/Pagination/Pagination';
 import PageSizeSelect from '@/components/ui/Pagination/PageSizeSelect';
-import { useClientPagination } from '@/hooks/useClientPagination';
+import type { PageSize } from '@/hooks/useClientPagination';
 import type { Category } from '@/types';
 import {
   listAdminProducts, createProduct, updateProduct, deleteProduct, listAdminCategories,
@@ -58,6 +58,10 @@ const emptyForm: ProductUpsertBody = {
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState<PageSize>(10);
+  const size = pageSize === 'all' ? 1000 : pageSize;
+  const [meta, setMeta] = useState<{ totalElements: number; totalPages: number } | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -94,16 +98,16 @@ export default function AdminProductsPage() {
     setLoading(true);
     setFailed(false);
     try {
-      // BE mặc định size=20 → client pagination chỉ thấy 20 sản phẩm đầu. Load đủ rồi cắt phía client.
-      const resp = await listAdminProducts({ size: 200 });
+      const resp = await listAdminProducts({ page, size, keyword: search || undefined });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setProducts((resp?.content ?? []) as any[]);
+      setMeta({ totalElements: resp?.totalElements ?? 0, totalPages: resp?.totalPages ?? 0 });
     } catch {
       setFailed(true);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, size, search]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -227,12 +231,9 @@ export default function AdminProductsPage() {
     }
   };
 
-  const filtered = products.filter(p =>
-    !search || p.name.toLowerCase().includes(search.toLowerCase()),
-  );
-
-  const { pageItems, page, totalPages, pageSize, setPage, setPageSize } =
-    useClientPagination<AdminProduct>(filtered, 10);
+  // Server-side pagination: search → keyword param gửi BE, BE trả đúng trang.
+  const pageItems: AdminProduct[] = products;
+  const totalPages = meta?.totalPages ?? 0;
 
   return (
     <div className={styles.page}>
@@ -252,8 +253,8 @@ export default function AdminProductsPage() {
             </svg>
           }
         />
-        <span className={styles.count}>{filtered.length} sản phẩm</span>
-        <PageSizeSelect value={pageSize} onChange={setPageSize} />
+        <span className={styles.count}>{meta?.totalElements ?? 0} sản phẩm</span>
+        <PageSizeSelect value={pageSize} onChange={(s) => { setPageSize(s); setPage(0); }} />
       </div>
 
       <div className={styles.tableWrapper}>

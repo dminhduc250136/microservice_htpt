@@ -9,7 +9,7 @@ import RetrySection from '@/components/ui/RetrySection/RetrySection';
 import { useToast } from '@/components/ui/Toast/Toast';
 import Pagination from '@/components/ui/Pagination/Pagination';
 import PageSizeSelect from '@/components/ui/Pagination/PageSizeSelect';
-import { useClientPagination } from '@/hooks/useClientPagination';
+import type { PageSize } from '@/hooks/useClientPagination';
 import {
   listAdminUsers, patchAdminUser, deleteAdminUser, createAdminUser,
   type AdminUserPatchBody, type AdminUserUpsertBody,
@@ -28,6 +28,10 @@ const thStyle = {
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState<PageSize>(10);
+  const size = pageSize === 'all' ? 1000 : pageSize;
+  const [meta, setMeta] = useState<{ totalElements: number; totalPages: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const [editTarget, setEditTarget] = useState<User | null>(null);
@@ -70,17 +74,15 @@ export default function AdminUsersPage() {
     setLoading(true);
     setFailed(false);
     try {
-      // BE mặc định size=20 + sort updatedAt desc → ADMIN (seed V100, oldest) bị đẩy
-      // sang trang sau, FE pagination phía client chỉ thấy 20 user mới nhất.
-      // Truyền size lớn để load đủ, client pagination cắt sau.
-      const resp = await listAdminUsers({ size: 200 });
+      const resp = await listAdminUsers({ page, size });
       setUsers(resp?.content ?? []);
+      setMeta({ totalElements: resp?.totalElements ?? 0, totalPages: resp?.totalPages ?? 0 });
     } catch {
       setFailed(true);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, size]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -125,8 +127,8 @@ export default function AdminUsersPage() {
     }
   };
 
-  const { pageItems, page, totalPages, pageSize, setPage, setPageSize } =
-    useClientPagination(users, 10);
+  const pageItems: User[] = users;
+  const totalPages = meta?.totalPages ?? 0;
 
   return (
     <div className={styles.page}>
@@ -136,7 +138,7 @@ export default function AdminUsersPage() {
           <span style={{ fontSize: 'var(--text-body-sm)', color: 'var(--on-surface-variant)' }}>
             {users.length} tài khoản
           </span>
-          <PageSizeSelect value={pageSize} onChange={setPageSize} />
+          <PageSizeSelect value={pageSize} onChange={(s) => { setPageSize(s); setPage(0); }} />
           <Button onClick={openAddModal}>+ Thêm tài khoản</Button>
         </div>
       </div>

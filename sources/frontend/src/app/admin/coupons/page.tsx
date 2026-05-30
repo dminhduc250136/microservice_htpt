@@ -25,7 +25,7 @@ import RetrySection from '@/components/ui/RetrySection/RetrySection';
 import { useToast } from '@/components/ui/Toast/Toast';
 import Pagination from '@/components/ui/Pagination/Pagination';
 import PageSizeSelect from '@/components/ui/Pagination/PageSizeSelect';
-import { useClientPagination } from '@/hooks/useClientPagination';
+import type { PageSize } from '@/hooks/useClientPagination';
 import {
   listAdminCoupons,
   createCoupon,
@@ -85,6 +85,10 @@ const emptyForm: CouponFormInput = {
 
 export default function AdminCouponsPage() {
   const [coupons, setCoupons] = useState<AdminCoupon[]>([]);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState<PageSize>(10);
+  const size = pageSize === 'all' ? 1000 : pageSize;
+  const [meta, setMeta] = useState<{ totalElements: number; totalPages: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -117,17 +121,18 @@ export default function AdminCouponsPage() {
     setLoading(true);
     setFailed(false);
     try {
-      const params: { q?: string; active?: boolean } = {};
+      const params: { page: number; size: number; q?: string; active?: boolean } = { page, size };
       if (search.trim()) params.q = search.trim();
       if (activeFilter !== 'ALL') params.active = activeFilter === 'true';
       const resp = await listAdminCoupons(params);
       setCoupons(resp?.content ?? []);
+      setMeta({ totalElements: resp?.totalElements ?? 0, totalPages: resp?.totalPages ?? 0 });
     } catch {
       setFailed(true);
     } finally {
       setLoading(false);
     }
-  }, [search, activeFilter]);
+  }, [search, activeFilter, page, size]);
 
   useEffect(() => {
     load();
@@ -237,8 +242,8 @@ export default function AdminCouponsPage() {
       ? `${c.value}%`
       : `${new Intl.NumberFormat('vi-VN').format(c.value)} đ`;
 
-  const { pageItems, page, totalPages, pageSize, setPage, setPageSize } =
-    useClientPagination(coupons, 10);
+  const pageItems: AdminCoupon[] = coupons;
+  const totalPages = meta?.totalPages ?? 0;
 
   return (
     <div className={styles.page}>
@@ -264,7 +269,7 @@ export default function AdminCouponsPage() {
           <option value="false">Đã tắt</option>
         </select>
         <span className={styles.count}>{coupons.length} coupon</span>
-        <PageSizeSelect value={pageSize} onChange={setPageSize} />
+        <PageSizeSelect value={pageSize} onChange={(s) => { setPageSize(s); setPage(0); }} />
       </div>
 
       <div className={styles.tableWrapper}>
