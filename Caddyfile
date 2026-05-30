@@ -10,12 +10,17 @@
 # Caddy tự xin + gia hạn TLS cho ${SITE_ADDRESS}. Yêu cầu:
 #   - DNS A record của domain trỏ về IP VM (đã xong: n24shop.io.vn → 74.226.89.57)
 #   - Cổng 80 + 443 mở trên VM (Let's Encrypt HTTP-01 challenge dùng cổng 80)
+#
+# Hostname thứ 2 (HTTP, ngrok-free.dev) phục vụ MoMo IPN callback. ngrok client trên
+# VM forward static domain → localhost:80; TLS do ngrok edge handle nên Caddy chỉ
+# cần match HTTP. Lý do dùng ngrok cho IPN: MoMo sandbox không gửi callback tới
+# domain Azure cloudapp dài; ngrok-free.dev tunnel hoạt động ổn định.
 
 {
 	email {$ACME_EMAIL}
 }
 
-{$SITE_ADDRESS} {
+{$SITE_ADDRESS}, http://frying-skipping-handbook.ngrok-free.dev {
 	# Các prefix thuộc API Gateway. Giữ nguyên path (gateway tự RewritePath nội bộ).
 	@gateway path /api/users* /api/products* /api/orders* /api/payments* /api/inventory* /api/notifications*
 	handle @gateway {
