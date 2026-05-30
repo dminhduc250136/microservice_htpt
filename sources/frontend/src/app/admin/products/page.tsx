@@ -94,7 +94,8 @@ export default function AdminProductsPage() {
     setLoading(true);
     setFailed(false);
     try {
-      const resp = await listAdminProducts();
+      // BE mặc định size=20 → client pagination chỉ thấy 20 sản phẩm đầu. Load đủ rồi cắt phía client.
+      const resp = await listAdminProducts({ size: 200 });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setProducts((resp?.content ?? []) as any[]);
     } catch {

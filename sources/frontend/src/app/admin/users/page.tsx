@@ -70,7 +70,10 @@ export default function AdminUsersPage() {
     setLoading(true);
     setFailed(false);
     try {
-      const resp = await listAdminUsers();
+      // BE mặc định size=20 + sort updatedAt desc → ADMIN (seed V100, oldest) bị đẩy
+      // sang trang sau, FE pagination phía client chỉ thấy 20 user mới nhất.
+      // Truyền size lớn để load đủ, client pagination cắt sau.
+      const resp = await listAdminUsers({ size: 200 });
       setUsers(resp?.content ?? []);
     } catch {
       setFailed(true);
