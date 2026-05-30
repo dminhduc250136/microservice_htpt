@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import styles from '../products/page.module.css';
 import Button from '@/components/ui/Button/Button';
 import Input from '@/components/ui/Input/Input';
@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/Toast/Toast';
 import Pagination from '@/components/ui/Pagination/Pagination';
 import PageSizeSelect from '@/components/ui/Pagination/PageSizeSelect';
 import type { PageSize } from '@/hooks/useClientPagination';
+import { useUrlState } from '@/hooks/useUrlState';
 import {
   listAdminUsers, patchAdminUser, deleteAdminUser, createAdminUser,
   type AdminUserPatchBody, type AdminUserUpsertBody,
@@ -26,11 +27,20 @@ const thStyle = {
   textAlign: 'left' as const,
 };
 
-export default function AdminUsersPage() {
+function AdminUsersPageContent() {
   const [users, setUsers] = useState<User[]>([]);
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState<PageSize>(10);
+  // URL = source of truth cho page/size — F5/back/share đều giữ view.
+  const { get, getNum, patch } = useUrlState();
+  const page = getNum('page', 0, { min: 0 });
+  const pageSizeRaw = get('size');
+  const pageSize: PageSize = pageSizeRaw === 'all'
+    ? 'all'
+    : ([10, 25, 50] as const).includes(Number(pageSizeRaw) as 10 | 25 | 50)
+      ? (Number(pageSizeRaw) as PageSize)
+      : 10;
   const size = pageSize === 'all' ? 1000 : pageSize;
+  const setPage = (p: number) => patch({ page: p });
+  const setPageSize = (s: PageSize) => patch({ size: s, page: 0 });
   const [meta, setMeta] = useState<{ totalElements: number; totalPages: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -138,7 +148,7 @@ export default function AdminUsersPage() {
           <span style={{ fontSize: 'var(--text-body-sm)', color: 'var(--on-surface-variant)' }}>
             {users.length} tài khoản
           </span>
-          <PageSizeSelect value={pageSize} onChange={(s) => { setPageSize(s); setPage(0); }} />
+          <PageSizeSelect value={pageSize} onChange={setPageSize} />
           <Button onClick={openAddModal}>+ Thêm tài khoản</Button>
         </div>
       </div>
@@ -336,5 +346,14 @@ export default function AdminUsersPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// useUrlState dùng useSearchParams → bắt buộc bọc Suspense ở Next.js App Router.
+export default function AdminUsersPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 'var(--space-6)' }}>Đang tải...</div>}>
+      <AdminUsersPageContent />
+    </Suspense>
   );
 }
