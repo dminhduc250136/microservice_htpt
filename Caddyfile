@@ -21,13 +21,9 @@
 }
 
 {$SITE_ADDRESS}, http://frying-skipping-handbook.ngrok-free.dev {
-	# Static files admin upload — serve thẳng từ product-service (bypass gateway).
-	@uploads path /uploads/*
-	handle @uploads {
-		reverse_proxy product-service:8080
-	}
-
 	# Các prefix thuộc API Gateway. Giữ nguyên path (gateway tự RewritePath nội bộ).
+	# Bao gồm cả /api/products/uploads/* (static file admin upload — product-service
+	# có resource handler riêng) và /api/products/admin/upload (multipart upload).
 	@gateway path /api/users* /api/products* /api/orders* /api/payments* /api/inventory* /api/notifications*
 	handle @gateway {
 		reverse_proxy api-gateway:8080

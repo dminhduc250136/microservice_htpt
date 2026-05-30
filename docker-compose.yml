@@ -336,7 +336,6 @@ services:
     depends_on:
       - api-gateway
       - frontend
-      - product-service
 
 volumes:
   caddy-data:
