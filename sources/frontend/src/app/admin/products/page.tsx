@@ -9,7 +9,7 @@ import RetrySection from '@/components/ui/RetrySection/RetrySection';
 import { useToast } from '@/components/ui/Toast/Toast';
 import Pagination from '@/components/ui/Pagination/Pagination';
 import PageSizeSelect from '@/components/ui/Pagination/PageSizeSelect';
-import { useClientPagination } from '@/hooks/useClientPagination';
+import type { PageSize } from '@/hooks/useClientPagination';
 import type { Category } from '@/types';
 import {
   listAdminProducts, createProduct, updateProduct, deleteProduct, listAdminCategories,
@@ -18,11 +18,14 @@ import {
 } from '@/services/products';
 
 // Backend AdminProductDto shape (fields returned from /api/products/admin)
+// Backend trả category dạng object {id, name, slug} (CategoryRef) — KHÔNG phải categoryId phẳng.
+// Giữ categoryId optional để tương thích nếu API tương lai đổi shape.
 interface AdminProduct {
   id: string;
   name: string;
   slug?: string;
   categoryId?: string;
+  category?: { id: string; name?: string; slug?: string };
   price?: number;
   originalPrice?: number;
   status?: string;
@@ -55,6 +58,10 @@ const emptyForm: ProductUpsertBody = {
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState<PageSize>(10);
+  const size = pageSize === 'all' ? 1000 : pageSize;
+  const [meta, setMeta] = useState<{ totalElements: number; totalPages: number } | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -91,15 +98,16 @@ export default function AdminProductsPage() {
     setLoading(true);
     setFailed(false);
     try {
-      const resp = await listAdminProducts();
+      const resp = await listAdminProducts({ page, size, keyword: search || undefined });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setProducts((resp?.content ?? []) as any[]);
+      setMeta({ totalElements: resp?.totalElements ?? 0, totalPages: resp?.totalPages ?? 0 });
     } catch {
       setFailed(true);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, size, search]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -127,7 +135,7 @@ export default function AdminProductsPage() {
     setFormData({
       name: product.name ?? '',
       slug: product.slug ?? '',
-      categoryId: product.categoryId ?? '',
+      categoryId: product.category?.id ?? product.categoryId ?? '',
       price: product.price ?? 0,
       status: product.status ?? 'ACTIVE',
       stock: product.stock ?? 0,
@@ -223,12 +231,9 @@ export default function AdminProductsPage() {
     }
   };
 
-  const filtered = products.filter(p =>
-    !search || p.name.toLowerCase().includes(search.toLowerCase()),
-  );
-
-  const { pageItems, page, totalPages, pageSize, setPage, setPageSize } =
-    useClientPagination<AdminProduct>(filtered, 10);
+  // Server-side pagination: search → keyword param gửi BE, BE trả đúng trang.
+  const pageItems: AdminProduct[] = products;
+  const totalPages = meta?.totalPages ?? 0;
 
   return (
     <div className={styles.page}>
@@ -248,8 +253,8 @@ export default function AdminProductsPage() {
             </svg>
           }
         />
-        <span className={styles.count}>{filtered.length} sản phẩm</span>
-        <PageSizeSelect value={pageSize} onChange={setPageSize} />
+        <span className={styles.count}>{meta?.totalElements ?? 0} sản phẩm</span>
+        <PageSizeSelect value={pageSize} onChange={(s) => { setPageSize(s); setPage(0); }} />
       </div>
 
       <div className={styles.tableWrapper}>
@@ -308,7 +313,7 @@ export default function AdminProductsPage() {
                     </div>
                   </div>
                 </td>
-                <td>{p.categoryId ?? '—'}</td>
+                <td>{p.category?.name ?? p.categoryId ?? '—'}</td>
                 <td className={styles.price}>{p.price?.toLocaleString('vi-VN')}₫</td>
                 <td>
                   <span className={(p.stock ?? 0) < 10 ? styles.lowStock : ''}>{p.stock ?? 0}</span>
