@@ -18,11 +18,14 @@ import {
 } from '@/services/products';
 
 // Backend AdminProductDto shape (fields returned from /api/products/admin)
+// Backend trả category dạng object {id, name, slug} (CategoryRef) — KHÔNG phải categoryId phẳng.
+// Giữ categoryId optional để tương thích nếu API tương lai đổi shape.
 interface AdminProduct {
   id: string;
   name: string;
   slug?: string;
   categoryId?: string;
+  category?: { id: string; name?: string; slug?: string };
   price?: number;
   originalPrice?: number;
   status?: string;
@@ -127,7 +130,7 @@ export default function AdminProductsPage() {
     setFormData({
       name: product.name ?? '',
       slug: product.slug ?? '',
-      categoryId: product.categoryId ?? '',
+      categoryId: product.category?.id ?? product.categoryId ?? '',
       price: product.price ?? 0,
       status: product.status ?? 'ACTIVE',
       stock: product.stock ?? 0,
@@ -308,7 +311,7 @@ export default function AdminProductsPage() {
                     </div>
                   </div>
                 </td>
-                <td>{p.categoryId ?? '—'}</td>
+                <td>{p.category?.name ?? p.categoryId ?? '—'}</td>
                 <td className={styles.price}>{p.price?.toLocaleString('vi-VN')}₫</td>
                 <td>
                   <span className={(p.stock ?? 0) < 10 ? styles.lowStock : ''}>{p.stock ?? 0}</span>
