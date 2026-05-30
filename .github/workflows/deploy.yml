@@ -5,6 +5,15 @@ on:
     branches: [main]
   workflow_dispatch: {}
 
+# Đảm bảo chỉ 1 deploy job chạy tại 1 thời điểm. Khi 2 PR merge cùng lúc, job mới
+# sẽ chờ job đang chạy xong rồi mới start, tránh `docker compose up -d` race nhau
+# (sự cố 2026-05-30: PR #24 + #25 merge cùng lúc → conflict container name).
+# cancel-in-progress: false vì việc bỏ giữa chừng có thể để VM ở state dở dang
+# (mỗi job sẽ pull main mới nhất → khi nó chạy đã có đầy đủ commit của job trước).
+concurrency:
+  group: deploy-to-vm
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
