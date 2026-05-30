@@ -13,7 +13,7 @@
  *     409 COUPON_HAS_REDEMPTIONS → modal lỗi gợi ý "tắt thay vì xoá".
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -26,6 +26,7 @@ import { useToast } from '@/components/ui/Toast/Toast';
 import Pagination from '@/components/ui/Pagination/Pagination';
 import PageSizeSelect from '@/components/ui/Pagination/PageSizeSelect';
 import type { PageSize } from '@/hooks/useClientPagination';
+import { useUrlState } from '@/hooks/useUrlState';
 import {
   listAdminCoupons,
   createCoupon,
@@ -83,11 +84,24 @@ const emptyForm: CouponFormInput = {
   active: true,
 };
 
-export default function AdminCouponsPage() {
+function AdminCouponsPageContent() {
   const [coupons, setCoupons] = useState<AdminCoupon[]>([]);
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState<PageSize>(10);
+  const { get, getNum, patch } = useUrlState();
+  const page = getNum('page', 0, { min: 0 });
+  const pageSizeRaw = get('size');
+  const pageSize: PageSize = pageSizeRaw === 'all'
+    ? 'all'
+    : ([10, 25, 50] as const).includes(Number(pageSizeRaw) as 10 | 25 | 50)
+      ? (Number(pageSizeRaw) as PageSize)
+      : 10;
   const size = pageSize === 'all' ? 1000 : pageSize;
+  const search = get('q') ?? '';
+  const activeRaw = get('active');
+  const activeFilter: 'ALL' | 'true' | 'false' = activeRaw === 'true' ? 'true' : activeRaw === 'false' ? 'false' : 'ALL';
+  const setPage = (p: number) => patch({ page: p });
+  const setPageSize = (s: PageSize) => patch({ size: s, page: 0 });
+  const setSearch = (v: string) => patch({ q: v, page: 0 });
+  const setActiveFilter = (v: 'ALL' | 'true' | 'false') => patch({ active: v === 'ALL' ? undefined : v, page: 0 });
   const [meta, setMeta] = useState<{ totalElements: number; totalPages: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -96,8 +110,6 @@ export default function AdminCouponsPage() {
   const [deleteTarget, setDeleteTarget] = useState<AdminCoupon | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [search, setSearch] = useState('');
-  const [activeFilter, setActiveFilter] = useState<'ALL' | 'true' | 'false'>('ALL');
   const { showToast } = useToast();
 
   const {
@@ -256,11 +268,11 @@ export default function AdminCouponsPage() {
         <Input
           placeholder="Tìm theo mã..."
           value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+          onChange={(e) => setSearch(e.target.value)}
         />
         <select
           value={activeFilter}
-          onChange={(e) => { setActiveFilter(e.target.value as 'ALL' | 'true' | 'false'); setPage(0); }}
+          onChange={(e) => setActiveFilter(e.target.value as 'ALL' | 'true' | 'false')}
           className={styles.select}
           aria-label="Lọc trạng thái"
         >
@@ -269,7 +281,7 @@ export default function AdminCouponsPage() {
           <option value="false">Đã tắt</option>
         </select>
         <span className={styles.count}>{coupons.length} coupon</span>
-        <PageSizeSelect value={pageSize} onChange={(s) => { setPageSize(s); setPage(0); }} />
+        <PageSizeSelect value={pageSize} onChange={setPageSize} />
       </div>
 
       <div className={styles.tableWrapper}>
@@ -516,5 +528,13 @@ export default function AdminCouponsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AdminCouponsPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 'var(--space-6)' }}>Đang tải...</div>}>
+      <AdminCouponsPageContent />
+    </Suspense>
   );
 }
