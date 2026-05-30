@@ -6,7 +6,9 @@ import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Serve file đã upload (lưu ở {@code app.uploads.dir}) qua URL {@code /uploads/**}.
+ * Serve file đã upload (lưu ở {@code app.uploads.dir}) qua URL
+ * {@code /products/uploads/**} — nằm dưới prefix /products để khớp gateway
+ * route /api/products/**. Browser truy cập qua {@code /api/products/uploads/<file>}.
  * Volume Docker mount thư mục này nên file persist qua restart container.
  */
 @Configuration
@@ -21,6 +23,6 @@ public class UploadConfig implements WebMvcConfigurer {
   @Override
   public void addResourceHandlers(ResourceHandlerRegistry registry) {
     String location = "file:" + (uploadsDir.endsWith("/") ? uploadsDir : uploadsDir + "/");
-    registry.addResourceHandler("/uploads/**").addResourceLocations(location);
+    registry.addResourceHandler("/products/uploads/**").addResourceLocations(location);
   }
 }

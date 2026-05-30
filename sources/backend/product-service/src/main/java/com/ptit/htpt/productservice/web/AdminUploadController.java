@@ -19,13 +19,18 @@ import org.springframework.web.server.ResponseStatusException;
 /**
  * Upload ảnh sản phẩm (admin only — protect ở gateway qua admin-path-patterns).
  *
- * <p>POST {@code /products/admin/upload} (multipart/form-data, field {@code file})
- * → lưu vào {@code app.uploads.dir}, trả về {@code {"url": "/uploads/<uuid>.<ext>"}}.
+ * <p>Gateway exposes này tại {@code POST /api/products/admin/upload}; internal
+ * mapping là {@code /admin/products/upload} (gateway rewrite
+ * /api/products/admin/(seg) → /admin/products/(seg) — D-12). Multipart field
+ * {@code file}, lưu vào {@code app.uploads.dir}, trả về
+ * {@code {"url": "/api/products/uploads/<uuid>.<ext>"}}.
  *
- * <p>FE set {@code thumbnailUrl} của product = giá trị URL trả về này.
+ * <p>FE set {@code thumbnailUrl} của product = giá trị URL trả về này — đường dẫn
+ * này đi qua gateway (route /api/products/** → /products/uploads/...) rồi tới
+ * resource handler ở {@link com.ptit.htpt.productservice.config.UploadConfig}.
  */
 @RestController
-@RequestMapping("/products/admin")
+@RequestMapping("/admin/products")
 public class AdminUploadController {
 
   private final Path uploadsRoot;
@@ -64,6 +69,6 @@ public class AdminUploadController {
       throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Không lưu được file: " + e.getMessage());
     }
 
-    return ApiResponse.of(201, "Uploaded", Map.of("url", "/uploads/" + name));
+    return ApiResponse.of(201, "Uploaded", Map.of("url", "/api/products/uploads/" + name));
   }
 }
