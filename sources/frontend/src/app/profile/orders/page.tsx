@@ -2,6 +2,7 @@
 
 import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
+import { isInternalUploadUrl } from '@/lib/imageHelpers';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import styles from './page.module.css';
@@ -137,6 +138,7 @@ function OrdersPageInner() {
                           fill
                           sizes="48px"
                           style={{ objectFit: 'cover' }}
+                          unoptimized={isInternalUploadUrl(item.productImage)}
                         />
                       ) : null}
                     </div>

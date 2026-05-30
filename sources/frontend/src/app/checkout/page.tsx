@@ -2,6 +2,7 @@
 
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
+import { isInternalUploadUrl } from '@/lib/imageHelpers';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import styles from './page.module.css';
@@ -380,7 +381,7 @@ function CheckoutPageContent() {
                 {cartItems.map((item) => (
                   <div key={item.productId} className={styles.summaryItem}>
                     <div className={styles.summaryItemImg}>
-                      <Image src={item.thumbnailUrl?.trim() ? item.thumbnailUrl : '/placeholder.png'} alt={item.name} fill sizes="60px" style={{ objectFit: 'cover' }} />
+                      <Image src={item.thumbnailUrl?.trim() ? item.thumbnailUrl : '/placeholder.png'} alt={item.name} fill sizes="60px" style={{ objectFit: 'cover' }} unoptimized={isInternalUploadUrl(item.thumbnailUrl)} />
                     </div>
                     <div className={styles.summaryItemInfo}>
                       <span className={styles.summaryItemName}>{item.name}</span>
