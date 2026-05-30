@@ -17,7 +17,7 @@
  * Hard-delete confirm (specifics 238): "Xoá vĩnh viễn review này? Không thể hoàn tác."
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import styles from './page.module.css';
 import Badge from '@/components/ui/Badge/Badge';
@@ -26,6 +26,7 @@ import { useToast } from '@/components/ui/Toast/Toast';
 import Pagination from '@/components/ui/Pagination/Pagination';
 import PageSizeSelect from '@/components/ui/Pagination/PageSizeSelect';
 import type { PageSize } from '@/hooks/useClientPagination';
+import { useUrlState } from '@/hooks/useUrlState';
 import {
   listAdminReviews,
   setReviewVisibility,
@@ -54,11 +55,23 @@ function formatDate(iso: string): string {
   }
 }
 
-export default function AdminReviewsPage() {
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState<PageSize>(10);
+function AdminReviewsPageContent() {
+  const { get, getNum, patch } = useUrlState();
+  const page = getNum('page', 0, { min: 0 });
+  const pageSizeRaw = get('size');
+  const pageSize: PageSize = pageSizeRaw === 'all'
+    ? 'all'
+    : ([10, 25, 50] as const).includes(Number(pageSizeRaw) as 10 | 25 | 50)
+      ? (Number(pageSizeRaw) as PageSize)
+      : 10;
   const size = pageSize === 'all' ? 1000 : pageSize;
-  const [filter, setFilter] = useState<FilterValue>('all');
+  const filterRaw = get('filter');
+  const filter: FilterValue = (['visible', 'hidden', 'deleted'] as const).includes(filterRaw as 'visible' | 'hidden' | 'deleted')
+    ? (filterRaw as FilterValue)
+    : 'all';
+  const setPage = (p: number) => patch({ page: p });
+  const setPageSize = (s: PageSize) => patch({ size: s, page: 0 });
+  const setFilter = (v: FilterValue) => patch({ filter: v === 'all' ? undefined : v, page: 0 });
   const [reviews, setReviews] = useState<AdminReview[]>([]);
   const [meta, setMeta] = useState<{
     totalElements: number;
@@ -120,10 +133,7 @@ export default function AdminReviewsPage() {
           <select
             className={styles.filterSelect}
             value={filter}
-            onChange={(e) => {
-              setPage(0);
-              setFilter(e.target.value as FilterValue);
-            }}
+            onChange={(e) => setFilter(e.target.value as FilterValue)}
             aria-label="Lọc đánh giá"
           >
             <option value="all">Tất cả</option>
@@ -134,7 +144,7 @@ export default function AdminReviewsPage() {
           {meta && (
             <span className={styles.count}>{meta.totalElements} đánh giá</span>
           )}
-          <PageSizeSelect value={pageSize} onChange={(s) => { setPageSize(s); setPage(0); }} />
+          <PageSizeSelect value={pageSize} onChange={setPageSize} />
         </div>
       </div>
 
@@ -238,5 +248,13 @@ export default function AdminReviewsPage() {
         <Pagination page={page} totalPages={meta.totalPages} onPageChange={setPage} alwaysShow />
       )}
     </div>
+  );
+}
+
+export default function AdminReviewsPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 'var(--space-6)' }}>Đang tải...</div>}>
+      <AdminReviewsPageContent />
+    </Suspense>
   );
 }

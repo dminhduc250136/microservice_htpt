@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from '../products/page.module.css';
 import Badge from '@/components/ui/Badge/Badge';
@@ -8,6 +8,7 @@ import RetrySection from '@/components/ui/RetrySection/RetrySection';
 import Pagination from '@/components/ui/Pagination/Pagination';
 import PageSizeSelect from '@/components/ui/Pagination/PageSizeSelect';
 import type { PageSize } from '@/hooks/useClientPagination';
+import { useUrlState } from '@/hooks/useUrlState';
 import { listAdminOrders } from '@/services/orders';
 
 // Backend AdminOrderDto shape
@@ -37,11 +38,19 @@ const statusVariant: Record<string, 'default' | 'new' | 'hot' | 'sale' | 'out-of
   CANCELLED: 'out-of-stock',
 };
 
-export default function AdminOrdersPage() {
+function AdminOrdersPageContent() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState<PageSize>(10);
+  const { get, getNum, patch } = useUrlState();
+  const page = getNum('page', 0, { min: 0 });
+  const pageSizeRaw = get('size');
+  const pageSize: PageSize = pageSizeRaw === 'all'
+    ? 'all'
+    : ([10, 25, 50] as const).includes(Number(pageSizeRaw) as 10 | 25 | 50)
+      ? (Number(pageSizeRaw) as PageSize)
+      : 10;
   const size = pageSize === 'all' ? 1000 : pageSize;
+  const setPage = (p: number) => patch({ page: p });
+  const setPageSize = (s: PageSize) => patch({ size: s, page: 0 });
   const [meta, setMeta] = useState<{ totalElements: number; totalPages: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -71,7 +80,7 @@ export default function AdminOrdersPage() {
     <div className={styles.page}>
       <div className={styles.header}>
         <h1 className={styles.title}>Quản lý đơn hàng</h1>
-        <PageSizeSelect value={pageSize} onChange={(s) => { setPageSize(s); setPage(0); }} />
+        <PageSizeSelect value={pageSize} onChange={setPageSize} />
       </div>
 
       <div className={styles.tableWrapper}>
@@ -143,5 +152,13 @@ export default function AdminOrdersPage() {
       </div>
       {!loading && !failed && <Pagination page={page} totalPages={totalPages} onPageChange={setPage} alwaysShow />}
     </div>
+  );
+}
+
+export default function AdminOrdersPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 'var(--space-6)' }}>Đang tải...</div>}>
+      <AdminOrdersPageContent />
+    </Suspense>
   );
 }
