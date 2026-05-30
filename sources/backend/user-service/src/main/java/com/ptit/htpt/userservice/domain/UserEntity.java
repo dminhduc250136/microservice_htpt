@@ -48,6 +48,9 @@ public class UserEntity {
   @Column(length = 20)
   private String phone;
 
+  @Column(name = "avatar_url", length = 512)
+  private String avatarUrl;
+
   @Column(nullable = false)
   private boolean deleted = false;
 
@@ -107,6 +110,11 @@ public class UserEntity {
     this.updatedAt = Instant.now();
   }
 
+  public void setAvatarUrl(String avatarUrl) {
+    this.avatarUrl = avatarUrl;
+    this.updatedAt = Instant.now();
+  }
+
   public void setEmailVerified(boolean v) {
     this.emailVerified = v;
     this.updatedAt = Instant.now();
@@ -133,6 +141,7 @@ public class UserEntity {
   public String roles() { return roles; }
   public String fullName() { return fullName; }
   public String phone() { return phone; }
+  public String avatarUrl() { return avatarUrl; }
   public boolean deleted() { return deleted; }
   public boolean emailVerified() { return emailVerified; }
   public Instant createdAt() { return createdAt; }

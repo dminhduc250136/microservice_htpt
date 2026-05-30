@@ -16,7 +16,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
@@ -77,6 +79,20 @@ public class UserMeController {
     ) {
         String userId = extractUserIdFromBearer(authHeader);
         return ApiResponse.of(200, "Đã cập nhật", profileService.updateMe(userId, body));
+    }
+
+    /**
+     * POST /users/me/avatar — upload ảnh đại diện (multipart, field "file").
+     * Trả về UserDto đã cập nhật avatarUrl (hasAvatar=true).
+     */
+    @PostMapping("/avatar")
+    public ApiResponse<UserDto> uploadAvatar(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader,
+            @RequestParam("file") MultipartFile file
+    ) {
+        String userId = extractUserIdFromBearer(authHeader);
+        return ApiResponse.of(200, "Đã cập nhật ảnh đại diện",
+                profileService.updateAvatar(userId, file));
     }
 
     /**

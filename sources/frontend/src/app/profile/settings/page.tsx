@@ -5,7 +5,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import styles from './page.module.css';
-import { changeMyPassword, getMe, patchMe } from '@/services/users';
+import { useRef } from 'react';
+import { changeMyPassword, getMe, patchMe, uploadMyAvatar } from '@/services/users';
 import { isApiError } from '@/services/errors';
 import { useToast } from '@/components/ui/Toast/Toast';
 import { useAuth } from '@/providers/AuthProvider';
@@ -56,6 +57,9 @@ export default function SettingsPage() {
   });
 
   const [profileEmail, setProfileEmail] = useState<string>('');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -64,10 +68,28 @@ export default function SettingsPage() {
         if (!alive) return;
         reset({ fullName: me.fullName ?? '', phone: me.phone ?? '' });
         setProfileEmail(me.email ?? '');
+        setAvatarUrl(me.avatarUrl ?? null);
       })
       .catch(() => { if (alive) showToast('Không tải được thông tin', 'error'); });
     return () => { alive = false; };
   }, [reset, showToast]);
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      const updated = await uploadMyAvatar(file);
+      setAvatarUrl(updated.avatarUrl ?? null);
+      if (user) login({ ...user, avatarUrl: updated.avatarUrl ?? null });
+      showToast('Đã cập nhật ảnh đại diện', 'success');
+    } catch {
+      showToast('Không tải được ảnh, vui lòng thử lại', 'error');
+    } finally {
+      setAvatarUploading(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = '';
+    }
+  }
 
   const onSubmitProfile = rhfHandleSubmit(async (data: ProfileFormData) => {
     try {
@@ -181,13 +203,36 @@ export default function SettingsPage() {
         </form>
       </section>
 
-      {/* Section 2: Avatar — placeholder, ACCT-04 defer per D-08 */}
+      {/* Section 2: Avatar — upload thật, lưu user-service /api/users/me/avatar */}
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Ảnh đại diện</h2>
-        <div className={styles.avatarPlaceholder} aria-label="Ảnh đại diện (chữ cái đầu)">
-          {(profileEmail || 'U').charAt(0).toUpperCase()}
+        <div className={styles.avatarRow}>
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="Ảnh đại diện" className={styles.avatarImg} />
+          ) : (
+            <div className={styles.avatarPlaceholder} aria-label="Ảnh đại diện (chữ cái đầu)">
+              {(profileEmail || 'U').charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              className={styles.avatarFileInput}
+              onChange={handleAvatarChange}
+            />
+            <button
+              type="button"
+              className={styles.avatarUploadBtn}
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={avatarUploading}
+            >
+              {avatarUploading ? 'Đang tải...' : (avatarUrl ? 'Đổi ảnh' : 'Tải ảnh lên')}
+            </button>
+            <p className={styles.hint}>Ảnh JPG/PNG/WEBP, tối đa 5MB.</p>
+          </div>
         </div>
-        <p className={styles.comingSoon}>Tính năng tải ảnh đại diện sẽ có trong bản cập nhật sau.</p>
       </section>
 
       {/* Section 3: Security — EXISTING Phase 9 password form (giữ nguyên) */}

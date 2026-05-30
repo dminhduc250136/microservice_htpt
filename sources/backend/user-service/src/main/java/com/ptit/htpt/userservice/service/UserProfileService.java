@@ -8,6 +8,7 @@ import com.ptit.htpt.userservice.web.UpdateMeRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
@@ -20,10 +21,14 @@ import org.springframework.web.server.ResponseStatusException;
 @Transactional
 public class UserProfileService {
 
-    private final UserRepository userRepo;
+    private static final String AVATAR_SUBDIR = "avatars";
 
-    public UserProfileService(UserRepository userRepo) {
+    private final UserRepository userRepo;
+    private final ImageStorageService imageStorage;
+
+    public UserProfileService(UserRepository userRepo, ImageStorageService imageStorage) {
         this.userRepo = userRepo;
+        this.imageStorage = imageStorage;
     }
 
     /**
@@ -54,6 +59,20 @@ public class UserProfileService {
         if (req.fullName() != null) entity.setFullName(req.fullName());
         if (req.phone() != null) entity.setPhone(req.phone());
         entity.touch();
+        return UserMapper.toDto(userRepo.save(entity));
+    }
+
+    /**
+     * Upload ảnh đại diện cho user hiện tại. Lưu file vào subdir "avatars", set
+     * {@code avatar_url} = URL public, trả về DTO mới (hasAvatar=true).
+     *
+     * <p>KHÔNG xóa file cũ (giữ đơn giản — file orphan có thể dọn bằng job riêng).
+     */
+    public UserDto updateAvatar(String userId, MultipartFile file) {
+        UserEntity entity = userRepo.findById(userId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        String url = imageStorage.store(file, AVATAR_SUBDIR);
+        entity.setAvatarUrl(url);
         return UserMapper.toDto(userRepo.save(entity));
     }
 }

@@ -117,6 +117,8 @@ public class ProductCrudService {
         request.brand(),
         request.thumbnailUrl(),
         request.shortDescription(),
+        request.description(),
+        request.specifications(),
         request.originalPrice()
     );
     product.setStock(request.stock());
@@ -134,6 +136,8 @@ public class ProductCrudService {
         request.brand(),
         request.thumbnailUrl(),
         request.shortDescription(),
+        request.description(),
+        request.specifications(),
         request.originalPrice(),
         request.stock()
     );
@@ -289,6 +293,8 @@ public class ProductCrudService {
       String brand,               // nullable — D-03
       String thumbnailUrl,        // nullable — D-03
       String shortDescription,    // nullable — D-03
+      String description,         // nullable — full description (PDP tab "Mô tả")
+      String specifications,      // nullable — JSON string [{label,value}] (PDP tab "Thông số")
       BigDecimal originalPrice,   // nullable — D-03
       @Min(0) int stock           // D-01: stock field cho admin set/update (Phase 8)
   ) {}

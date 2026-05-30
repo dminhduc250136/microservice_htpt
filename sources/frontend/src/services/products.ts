@@ -106,6 +106,8 @@ export interface ProductUpsertBody {
   brand?: string;
   thumbnailUrl?: string;
   shortDescription?: string;
+  description?: string;       // mô tả dài (PDP tab "Mô tả")
+  specifications?: string;    // JSON string [{label,value}] (PDP tab "Thông số")
   originalPrice?: number;
 }
 
@@ -137,4 +139,13 @@ export function deleteProduct(id: string): Promise<void> {
 
 export function listAdminCategories(): Promise<PaginatedResponse<Category>> {
   return httpGet<PaginatedResponse<Category>>('/api/products/admin/categories');
+}
+
+/**
+ * Upload ảnh sản phẩm — wrapper mỏng quanh {@link uploadImage}, chỉ chốt endpoint.
+ * Trả về URL relative dạng /api/products/uploads/products/<name> để gán vào thumbnailUrl.
+ */
+import { uploadImage } from './upload';
+export function uploadProductImage(file: File): Promise<string> {
+  return uploadImage('/api/products/admin/upload', file);
 }
