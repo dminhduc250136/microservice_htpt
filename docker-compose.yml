@@ -187,6 +187,9 @@ services:
       SPRING_RABBITMQ_USER: guest
       SPRING_RABBITMQ_PASS: guest
       APP_BASE_URL: ${APP_BASE_URL}
+      UPLOADS_DIR: /uploads
+    volumes:
+      - user-uploads:/uploads
 
   product-service:
     build: ./sources/backend/product-service
@@ -200,6 +203,9 @@ services:
       DB_NAME: product_svc
       DB_USER: product_svc
       DB_PASSWORD: product_svc_pw
+      UPLOADS_DIR: /uploads
+    volumes:
+      - product-uploads:/uploads
 
   order-service:
     build: ./sources/backend/order-service
@@ -345,3 +351,5 @@ volumes:
   pgdata-notification:
   pgdata-chat:
   tmdt-rabbitmqdata:
+  product-uploads:
+  user-uploads:

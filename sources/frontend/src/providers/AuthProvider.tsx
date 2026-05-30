@@ -24,7 +24,7 @@ import { mergeGuestCartToServer, clearLocalCart } from '@/services/cart';
 
 interface AuthState {
   isAuthenticated: boolean;
-  user: { id: string; email: string; name: string } | null;
+  user: { id: string; email: string; name: string; avatarUrl?: string | null } | null;
 }
 
 const AuthContext = createContext<AuthState & {

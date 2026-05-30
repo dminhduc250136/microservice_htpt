@@ -4,6 +4,7 @@ package com.ptit.htpt.userservice.domain;
  *
  * Phase 7 / Plan 03 (D-04): Map thêm fullName + phone.
  * Phase 10 / Plan 10-01 (D-06): Map hasAvatar=false (avatar defer per D-08).
+ * Avatar wire-up: hasAvatar suy từ avatarUrl != null.
  */
 public final class UserMapper {
   private UserMapper() {}
@@ -14,9 +15,10 @@ public final class UserMapper {
         e.username(),
         e.email(),
         e.roles(),
-        e.fullName(),     // D-04
-        e.phone(),        // D-04
-        false,            // D-06: hasAvatar Phase 10 luôn false (avatar defer per D-08)
+        e.fullName(),
+        e.phone(),
+        e.avatarUrl(),
+        e.avatarUrl() != null,
         e.createdAt(),
         e.updatedAt()
     );
