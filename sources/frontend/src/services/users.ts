@@ -18,6 +18,18 @@ export interface AdminUserPatchBody {
   roles?: string;
 }
 
+/** Body cho POST /api/users/admin — admin tạo user mới. BE auto BCrypt hash passwordHash. */
+export interface AdminUserUpsertBody {
+  username: string;
+  email: string;
+  passwordHash: string;   // plaintext OK — BE tự hash trước khi save
+  roles?: string;         // "USER" | "ADMIN" (default USER)
+}
+
+export function createAdminUser(body: AdminUserUpsertBody): Promise<User> {
+  return httpPost<User>('/api/users/admin', body);
+}
+
 export function listAdminUsers(params?: ListUsersParams): Promise<PaginatedResponse<User>> {
   const qs = new URLSearchParams();
   if (params?.page !== undefined) qs.set('page', String(params.page));

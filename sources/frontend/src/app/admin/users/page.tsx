@@ -10,7 +10,10 @@ import { useToast } from '@/components/ui/Toast/Toast';
 import Pagination from '@/components/ui/Pagination/Pagination';
 import PageSizeSelect from '@/components/ui/Pagination/PageSizeSelect';
 import { useClientPagination } from '@/hooks/useClientPagination';
-import { listAdminUsers, patchAdminUser, deleteAdminUser, type AdminUserPatchBody } from '@/services/users';
+import {
+  listAdminUsers, patchAdminUser, deleteAdminUser, createAdminUser,
+  type AdminUserPatchBody, type AdminUserUpsertBody,
+} from '@/services/users';
 import type { User } from '@/types';
 
 const thStyle = {
@@ -31,7 +34,37 @@ export default function AdminUsersPage() {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [editForm, setEditForm] = useState<AdminUserPatchBody>({ fullName: '', phone: '', roles: 'USER' });
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addForm, setAddForm] = useState<AdminUserUpsertBody>({ username: '', email: '', passwordHash: '', roles: 'USER' });
   const { showToast } = useToast();
+
+  const openAddModal = () => {
+    setAddForm({ username: '', email: '', passwordHash: '', roles: 'USER' });
+    setShowAddModal(true);
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!addForm.username.trim() || !addForm.email.trim() || !addForm.passwordHash.trim()) {
+      showToast('Vui lòng nhập đủ username, email, mật khẩu', 'error');
+      return;
+    }
+    if (addForm.passwordHash.length < 6) {
+      showToast('Mật khẩu phải có ít nhất 6 ký tự', 'error');
+      return;
+    }
+    setSaving(true);
+    try {
+      await createAdminUser(addForm);
+      showToast('Đã tạo tài khoản mới', 'success');
+      setShowAddModal(false);
+      await load();
+    } catch {
+      showToast('Không thể tạo tài khoản. Có thể username/email đã tồn tại', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -101,6 +134,7 @@ export default function AdminUsersPage() {
             {users.length} tài khoản
           </span>
           <PageSizeSelect value={pageSize} onChange={setPageSize} />
+          <Button onClick={openAddModal}>+ Thêm tài khoản</Button>
         </div>
       </div>
 
@@ -180,6 +214,63 @@ export default function AdminUsersPage() {
         </table>
       </div>
       {!loading && !failed && <Pagination page={page} totalPages={totalPages} onPageChange={setPage} alwaysShow />}
+
+      {/* Add modal — admin tạo user mới */}
+      {showAddModal && (
+        <div className={styles.overlay} onClick={() => setShowAddModal(false)}>
+          <div className={styles.modal} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h3>Thêm tài khoản mới</h3>
+              <button className={styles.closeBtn} onClick={() => setShowAddModal(false)}>✕</button>
+            </div>
+            <form className={styles.modalForm} onSubmit={handleCreateUser}>
+              <Input
+                label="Tên đăng nhập"
+                placeholder="vd: user01"
+                value={addForm.username}
+                onChange={e => setAddForm(p => ({ ...p, username: e.target.value }))}
+                fullWidth
+                required
+              />
+              <Input
+                label="Email"
+                type="email"
+                placeholder="vd: user@gmail.com"
+                value={addForm.email}
+                onChange={e => setAddForm(p => ({ ...p, email: e.target.value }))}
+                fullWidth
+                required
+              />
+              <Input
+                label="Mật khẩu"
+                type="password"
+                placeholder="Tối thiểu 6 ký tự"
+                value={addForm.passwordHash}
+                onChange={e => setAddForm(p => ({ ...p, passwordHash: e.target.value }))}
+                fullWidth
+                required
+              />
+              <div>
+                <label style={{ fontSize: 'var(--text-body-md)', marginBottom: 'var(--space-2)', display: 'block' }}>
+                  Vai trò
+                </label>
+                <select
+                  value={addForm.roles ?? 'USER'}
+                  onChange={e => setAddForm(p => ({ ...p, roles: e.target.value }))}
+                  style={{ width: '100%', padding: 'var(--space-3)', borderRadius: 'var(--radius-lg)', border: '1.5px solid rgba(195,198,214,0.2)', fontSize: 'var(--text-body-md)', fontFamily: 'var(--font-family-body)', background: 'var(--surface-container-lowest)', cursor: 'pointer' }}
+                >
+                  <option value="USER">Khách hàng</option>
+                  <option value="ADMIN">Quản trị viên</option>
+                </select>
+              </div>
+              <div className={styles.modalActions}>
+                <Button variant="secondary" type="button" onClick={() => setShowAddModal(false)}>Hủy</Button>
+                <Button type="submit" loading={saving}>Tạo tài khoản</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Edit modal — D-10 UserEditModal */}
       {editTarget && (

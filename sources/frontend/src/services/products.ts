@@ -106,6 +106,8 @@ export interface ProductUpsertBody {
   brand?: string;
   thumbnailUrl?: string;
   shortDescription?: string;
+  description?: string;       // mô tả dài (PDP tab "Mô tả")
+  specifications?: string;    // JSON string [{label,value}] (PDP tab "Thông số")
   originalPrice?: number;
 }
 
@@ -137,4 +139,26 @@ export function deleteProduct(id: string): Promise<void> {
 
 export function listAdminCategories(): Promise<PaginatedResponse<Category>> {
   return httpGet<PaginatedResponse<Category>>('/api/products/admin/categories');
+}
+
+/**
+ * Upload ảnh sản phẩm (multipart/form-data) → trả về URL relative để gán vào thumbnailUrl.
+ * Backend serve file qua /uploads/<name> (Caddy route → product-service static handler).
+ */
+export async function uploadProductImage(file: File): Promise<string> {
+  const { getAccessToken } = await import('./token');
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+  const token = getAccessToken();
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch(`${baseUrl}/api/products/admin/upload`, {
+    method: 'POST',
+    body: form,
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+  if (!res.ok) {
+    throw new Error(`Upload failed: ${res.status}`);
+  }
+  const env = await res.json();
+  return String(env?.data?.url ?? '');
 }
