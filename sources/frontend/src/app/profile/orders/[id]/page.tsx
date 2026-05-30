@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { isInternalUploadUrl } from '@/lib/imageHelpers';
 import { useParams } from 'next/navigation';
 import styles from './page.module.css';
 import Button from '@/components/ui/Button/Button';
@@ -165,6 +166,7 @@ export default function OrderDetailPage() {
                                 height={64}
                                 alt={item.productName}
                                 className={styles.itemThumb}
+                                unoptimized={isInternalUploadUrl(item.thumbnailUrl)}
                               />
                             ) : (
                               <div className={styles.itemThumbPlaceholder} aria-hidden="true">📦</div>

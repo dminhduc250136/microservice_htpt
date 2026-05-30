@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
+import { isInternalUploadUrl } from '@/lib/imageHelpers';
 import { useParams, useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button/Button';
 import Badge from '@/components/ui/Badge/Badge';
@@ -215,6 +216,7 @@ export default function AdminOrderDetailPage() {
                             height={64}
                             alt={it.productName}
                             style={{ borderRadius: 'var(--radius-md)', objectFit: 'cover', flexShrink: 0 }}
+                            unoptimized={isInternalUploadUrl(it.thumbnailUrl)}
                           />
                         ) : (
                           <div

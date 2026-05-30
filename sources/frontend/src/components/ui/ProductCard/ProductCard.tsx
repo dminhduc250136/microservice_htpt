@@ -7,6 +7,7 @@ import styles from './ProductCard.module.css';
 import Badge from '@/components/ui/Badge/Badge';
 import { Product } from '@/types';
 import { formatPrice } from '@/services/api';
+import { isInternalUploadUrl } from '@/lib/imageHelpers';
 
 interface ProductCardProps {
   product: Product;
@@ -39,6 +40,7 @@ export default function ProductCard({ product, className = '', variant = 'defaul
           fill
           sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
           className={styles.image}
+          unoptimized={isInternalUploadUrl(product.thumbnailUrl)}
         />
 
         {/* Tags */}
