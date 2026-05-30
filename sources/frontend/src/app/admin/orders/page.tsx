@@ -7,7 +7,7 @@ import Badge from '@/components/ui/Badge/Badge';
 import RetrySection from '@/components/ui/RetrySection/RetrySection';
 import Pagination from '@/components/ui/Pagination/Pagination';
 import PageSizeSelect from '@/components/ui/Pagination/PageSizeSelect';
-import { useClientPagination } from '@/hooks/useClientPagination';
+import type { PageSize } from '@/hooks/useClientPagination';
 import { listAdminOrders } from '@/services/orders';
 
 // Backend AdminOrderDto shape
@@ -39,6 +39,10 @@ const statusVariant: Record<string, 'default' | 'new' | 'hot' | 'sale' | 'out-of
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState<PageSize>(10);
+  const size = pageSize === 'all' ? 1000 : pageSize;
+  const [meta, setMeta] = useState<{ totalElements: number; totalPages: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const router = useRouter();
@@ -47,26 +51,27 @@ export default function AdminOrdersPage() {
     setLoading(true);
     setFailed(false);
     try {
-      const resp = await listAdminOrders();
+      const resp = await listAdminOrders({ page, size });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setOrders((resp?.content ?? []) as any[]);
+      setMeta({ totalElements: resp?.totalElements ?? 0, totalPages: resp?.totalPages ?? 0 });
     } catch {
       setFailed(true);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, size]);
 
   useEffect(() => { load(); }, [load]);
 
-  const { pageItems, page, totalPages, pageSize, setPage, setPageSize } =
-    useClientPagination<AdminOrder>(orders, 10);
+  const pageItems: AdminOrder[] = orders;
+  const totalPages = meta?.totalPages ?? 0;
 
   return (
     <div className={styles.page}>
       <div className={styles.header}>
         <h1 className={styles.title}>Quản lý đơn hàng</h1>
-        <PageSizeSelect value={pageSize} onChange={setPageSize} />
+        <PageSizeSelect value={pageSize} onChange={(s) => { setPageSize(s); setPage(0); }} />
       </div>
 
       <div className={styles.tableWrapper}>
