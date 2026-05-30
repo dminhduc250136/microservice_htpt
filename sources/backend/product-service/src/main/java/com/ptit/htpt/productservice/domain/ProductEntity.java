@@ -102,23 +102,44 @@ public class ProductEntity {
     this.updatedAt = updatedAt;
   }
 
+  /** Legacy overload (Phase 8) — giữ để KHÔNG vỡ test cũ. */
   public static ProductEntity create(String name, String slug, String categoryId,
                                      BigDecimal price, String status,
                                      String brand, String thumbnailUrl,
                                      String shortDescription, BigDecimal originalPrice) {
+    return create(name, slug, categoryId, price, status, brand, thumbnailUrl,
+        shortDescription, null, null, originalPrice);
+  }
+
+  public static ProductEntity create(String name, String slug, String categoryId,
+                                     BigDecimal price, String status,
+                                     String brand, String thumbnailUrl,
+                                     String shortDescription, String description,
+                                     String specifications, BigDecimal originalPrice) {
     Instant now = Instant.now();
     ProductEntity entity = new ProductEntity(UUID.randomUUID().toString(), name, slug, categoryId,
         price, status, false, now, now);
     entity.brand = brand;
     entity.thumbnailUrl = thumbnailUrl;
     entity.shortDescription = shortDescription;
+    entity.description = description;
+    entity.specifications = specifications;
     entity.originalPrice = originalPrice;
     return entity;
   }
 
+  /** Legacy overload (Phase 8) — giữ để KHÔNG vỡ test cũ. */
   public void update(String name, String slug, String categoryId, BigDecimal price, String status,
                      String brand, String thumbnailUrl,
                      String shortDescription, BigDecimal originalPrice, int stock) {
+    update(name, slug, categoryId, price, status, brand, thumbnailUrl, shortDescription,
+        this.description, this.specifications, originalPrice, stock);
+  }
+
+  public void update(String name, String slug, String categoryId, BigDecimal price, String status,
+                     String brand, String thumbnailUrl,
+                     String shortDescription, String description, String specifications,
+                     BigDecimal originalPrice, int stock) {
     this.name = name;
     this.slug = slug;
     this.categoryId = categoryId;
@@ -127,6 +148,8 @@ public class ProductEntity {
     this.brand = brand;
     this.thumbnailUrl = thumbnailUrl;
     this.shortDescription = shortDescription;
+    this.description = description;
+    this.specifications = specifications;
     this.originalPrice = originalPrice;
     this.stock = stock;
     this.updatedAt = Instant.now();

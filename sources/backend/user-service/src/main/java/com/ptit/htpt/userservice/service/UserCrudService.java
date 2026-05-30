@@ -13,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -31,9 +32,20 @@ import org.springframework.web.server.ResponseStatusException;
 @Transactional
 public class UserCrudService {
   private final UserRepository userRepo;
+  private final PasswordEncoder passwordEncoder;
 
-  public UserCrudService(UserRepository userRepo) {
+  public UserCrudService(UserRepository userRepo, PasswordEncoder passwordEncoder) {
     this.userRepo = userRepo;
+    this.passwordEncoder = passwordEncoder;
+  }
+
+  /** Hash plain password nếu chưa phải BCrypt hash (BCrypt hash bắt đầu bằng $2a$/$2b$/$2y$). */
+  private String hashIfNeeded(String value) {
+    if (value == null || value.isBlank()) return value;
+    if (value.startsWith("$2a$") || value.startsWith("$2b$") || value.startsWith("$2y$")) {
+      return value;
+    }
+    return passwordEncoder.encode(value);
   }
 
   @Transactional(readOnly = true)
@@ -59,10 +71,9 @@ public class UserCrudService {
     UserEntity entity = UserEntity.create(
         request.username(),
         request.email(),
-        // Plain text accepted at this layer; Phase 6 auth-service sẽ wrap với BCryptPasswordEncoder.
-        // Plan 04 scope: chỉ persistence; admin tạo user qua admin tool có hash sẵn,
-        // hoặc Phase 6 register endpoint sẽ hash trước khi gọi service này.
-        request.passwordHash(),
+        // passwordHash field nhận plaintext từ admin form → hashIfNeeded auto BCrypt.
+        // Nếu giá trị đã là BCrypt hash sẵn (legacy/internal tool) thì giữ nguyên.
+        hashIfNeeded(request.passwordHash()),
         request.roles() == null || request.roles().isBlank() ? "USER" : request.roles()
     );
     return UserMapper.toDto(userRepo.save(entity));
@@ -73,7 +84,7 @@ public class UserCrudService {
     current.update(request.username(), request.email(),
         request.roles() == null || request.roles().isBlank() ? current.roles() : request.roles());
     if (request.passwordHash() != null && !request.passwordHash().isBlank()) {
-      current.changePasswordHash(request.passwordHash());
+      current.changePasswordHash(hashIfNeeded(request.passwordHash()));
     }
     return UserMapper.toDto(userRepo.save(current));
   }
