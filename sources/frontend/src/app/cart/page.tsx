@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
+import { isInternalUploadUrl } from '@/lib/imageHelpers';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
@@ -171,6 +172,7 @@ export default function CartPage() {
                         fill
                         sizes="120px"
                         className={styles.itemImg}
+                        unoptimized={isInternalUploadUrl(item.thumbnailUrl)}
                       />
                     </Link>
 

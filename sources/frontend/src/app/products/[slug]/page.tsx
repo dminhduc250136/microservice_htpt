@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
+import { isInternalUploadUrl } from '@/lib/imageHelpers';
 import Link from 'next/link';
 import { useParams, useRouter, notFound } from 'next/navigation';
 import styles from './page.module.css';
@@ -138,6 +139,7 @@ export default function ProductDetailPage() {
                   sizes="(max-width: 768px) 100vw, 50vw"
                   className={styles.mainImg}
                   priority
+                  unoptimized={isInternalUploadUrl(product.images?.[selectedImage] ?? product.thumbnailUrl)}
                 />
                 {product.tags && product.tags.length > 0 && (
                   <div className={styles.imageTags}>
@@ -171,7 +173,7 @@ export default function ProductDetailPage() {
                       className={`${styles.thumbnail} ${i === selectedImage ? styles.thumbnailActive : ''}`}
                       onClick={() => setSelectedImage(i)}
                     >
-                      <Image src={img} alt={`${product.name} - ${i + 1}`} fill sizes="80px" className={styles.thumbImg} />
+                      <Image src={img} alt={`${product.name} - ${i + 1}`} fill sizes="80px" className={styles.thumbImg} unoptimized={isInternalUploadUrl(img)} />
                     </button>
                   ))}
                 </div>
