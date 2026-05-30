@@ -1,7 +1,6 @@
 'use client';
 
-import React, { Suspense, useCallback, useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import styles from './page.module.css';
 import ProductCard from '@/components/ui/ProductCard/ProductCard';
 import Button from '@/components/ui/Button/Button';
@@ -9,24 +8,34 @@ import Input from '@/components/ui/Input/Input';
 import RetrySection from '@/components/ui/RetrySection/RetrySection';
 import FilterSidebar, { type FilterValue } from '@/components/ui/FilterSidebar/FilterSidebar';
 import Pagination from '@/components/ui/Pagination/Pagination';
+import { useUrlState } from '@/hooks/useUrlState';
 import { listProducts, listCategories, listBrands } from '@/services/products';
 import type { Product, Category } from '@/types';
 
 type SortOption = 'newest' | 'price_asc' | 'price_desc' | 'popular' | 'rating';
+const SORT_VALUES: readonly SortOption[] = ['newest', 'price_asc', 'price_desc', 'popular', 'rating'];
 
 function ProductsPageContent() {
-  const searchParams = useSearchParams();
-  const initialCategorySlug = searchParams.get('category');
-  // Từ khóa tìm kiếm đến từ Header (?keyword=...) — khởi tạo state từ URL.
-  const initialKeyword = searchParams.get('keyword') ?? '';
+  // URL = source of truth. State đọc từ URL, setter dùng patch/patchMany.
+  const { get, getNum, getAll, patch, patchMany } = useUrlState();
+  const searchQuery = get('keyword') ?? '';
+  const categorySlug = get('category') ?? ''; // URL dùng slug (đẹp hơn UUID)
+  const sortRaw = get('sort');
+  const sortBy: SortOption = (SORT_VALUES as readonly string[]).includes(sortRaw ?? '')
+    ? (sortRaw as SortOption)
+    : 'newest';
+  const filterBrands = useMemo(() => getAll('brands'), [getAll]);
+  const filterPriceMin = getNum('priceMin', NaN);
+  const filterPriceMax = getNum('priceMax', NaN);
+  const page = getNum('page', 0, { min: 0 });
+
+  // Setters: đổi filter → reset page=0; clear keyword/brand → xoá hẳn key khỏi URL.
+  const setSearchQuery = (v: string) => patch({ keyword: v, page: 0 });
+  const setCategorySlug = (slug: string | null) => patch({ category: slug, page: 0 });
+  const setSortBy = (s: SortOption) => patch({ sort: s === 'newest' ? undefined : s, page: 0 });
+  const setPage = (p: number) => patch({ page: p });
 
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState(initialKeyword);
-  const [sortBy, setSortBy] = useState<SortOption>('newest');
-  const [filterBrands, setFilterBrands] = useState<string[]>([]);
-  const [filterPriceMin, setFilterPriceMin] = useState<number | undefined>(undefined);
-  const [filterPriceMax, setFilterPriceMax] = useState<number | undefined>(undefined);
   const [availableBrands, setAvailableBrands] = useState<string[]>([]);
   const [brandsLoading, setBrandsLoading] = useState(true);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
@@ -37,15 +46,14 @@ function ProductsPageContent() {
 
   // Phân trang — page 0-based khớp Spring Pageable. 9 SP/trang = lưới 3x3.
   const PAGE_SIZE = 9;
-  const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
-  // Đồng bộ khi user search lại từ Header trong lúc đang Ở trang /products:
-  // router.push đổi ?keyword=... nhưng component không remount → cập nhật state thủ công.
-  useEffect(() => {
-    setSearchQuery(searchParams.get('keyword') ?? '');
-  }, [searchParams]);
+  // Slug ↔ id mapping. BE listProducts nhận categoryId (UUID), URL giữ slug user-friendly.
+  const selectedCategoryId = useMemo(() => {
+    if (!categorySlug) return null;
+    return categories.find((c) => c.slug === categorySlug)?.id ?? null;
+  }, [categorySlug, categories]);
 
   // Load categories once (best-effort; failure here does NOT block the grid).
   useEffect(() => {
@@ -54,10 +62,6 @@ function ProductsPageContent() {
       .then((resp) => {
         if (!alive) return;
         setCategories(resp?.content ?? []);
-        if (initialCategorySlug) {
-          const match = resp?.content?.find((c) => c.slug === initialCategorySlug);
-          if (match) setSelectedCategory(match.id);
-        }
       })
       .catch(() => {
         // Categories failure is non-fatal — grid + price filters still usable.
@@ -65,7 +69,7 @@ function ProductsPageContent() {
     return () => {
       alive = false;
     };
-  }, [initialCategorySlug]);
+  }, []);
 
   // Phase 14 / SEARCH-01 — fetch danh sách brand DISTINCT (non-fatal fail).
   useEffect(() => {
@@ -107,11 +111,11 @@ function ProductsPageContent() {
         page,
         size: PAGE_SIZE,
         sort: sortParam,
-        categoryId: selectedCategory ?? undefined,
+        categoryId: selectedCategoryId ?? undefined,
         keyword: searchQuery.trim() || undefined,
         brands: filterBrands.length > 0 ? filterBrands : undefined,
-        priceMin: filterPriceMin,
-        priceMax: filterPriceMax,
+        priceMin: Number.isFinite(filterPriceMin) ? filterPriceMin : undefined,
+        priceMax: Number.isFinite(filterPriceMax) ? filterPriceMax : undefined,
       });
       setProducts(resp?.content ?? []);
       setTotalPages(resp?.totalPages ?? 0);
@@ -125,16 +129,11 @@ function ProductsPageContent() {
     } finally {
       setLoading(false);
     }
-  }, [page, sortBy, selectedCategory, searchQuery, filterBrands, filterPriceMin, filterPriceMax]);
+  }, [page, sortBy, selectedCategoryId, searchQuery, filterBrands, filterPriceMin, filterPriceMax]);
 
   useEffect(() => {
     load();
   }, [load]);
-
-  // Đổi filter/sort/search → quay về trang đầu (tránh kẹt ở trang vượt totalPages mới).
-  useEffect(() => {
-    setPage(0);
-  }, [sortBy, selectedCategory, searchQuery, filterBrands, filterPriceMin, filterPriceMax]);
 
   // Đổi trang → cuộn lên đầu danh sách để user thấy SP mới.
   const handlePageChange = (next: number) => {
@@ -146,17 +145,15 @@ function ProductsPageContent() {
 
   // D-10: "Xóa bộ lọc" trong FilterSidebar chỉ reset brand+price; KHÔNG đụng categories/keyword/sort.
   const clearFilters = () => {
-    setFilterBrands([]);
-    setFilterPriceMin(undefined);
-    setFilterPriceMax(undefined);
+    patchMany({ priceMin: undefined, priceMax: undefined, page: 0 }, { brands: [] });
   };
 
-  // Header "Xóa tất cả" — reset toàn bộ filter (categories + search + sort + brand + price).
+  // Header "Xóa tất cả" — reset toàn bộ filter.
   const clearAll = () => {
-    setSelectedCategory(null);
-    setSearchQuery('');
-    setSortBy('newest');
-    clearFilters();
+    patchMany(
+      { keyword: undefined, category: undefined, sort: undefined, priceMin: undefined, priceMax: undefined, page: 0 },
+      { brands: [] },
+    );
   };
 
   return (
@@ -215,16 +212,16 @@ function ProductsPageContent() {
               <h4 className={styles.filterTitle}>Danh mục</h4>
               <div className={styles.filterOptions}>
                 <button
-                  className={`${styles.filterChip} ${!selectedCategory ? styles.filterChipActive : ''}`}
-                  onClick={() => setSelectedCategory(null)}
+                  className={`${styles.filterChip} ${!categorySlug ? styles.filterChipActive : ''}`}
+                  onClick={() => setCategorySlug(null)}
                 >
                   Tất cả
                 </button>
                 {categories.map((cat) => (
                   <button
                     key={cat.id}
-                    className={`${styles.filterChip} ${selectedCategory === cat.id ? styles.filterChipActive : ''}`}
-                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`${styles.filterChip} ${categorySlug === cat.slug ? styles.filterChipActive : ''}`}
+                    onClick={() => setCategorySlug(cat.slug ?? null)}
                   >
                     {cat.name}
                   </button>
@@ -236,11 +233,16 @@ function ProductsPageContent() {
             <FilterSidebar
               brands={availableBrands}
               loading={brandsLoading}
-              value={{ brands: filterBrands, priceMin: filterPriceMin, priceMax: filterPriceMax }}
+              value={{
+                brands: filterBrands,
+                priceMin: Number.isFinite(filterPriceMin) ? filterPriceMin : undefined,
+                priceMax: Number.isFinite(filterPriceMax) ? filterPriceMax : undefined,
+              }}
               onChange={(next: FilterValue) => {
-                setFilterBrands(next.brands);
-                setFilterPriceMin(next.priceMin);
-                setFilterPriceMax(next.priceMax);
+                patchMany(
+                  { priceMin: next.priceMin, priceMax: next.priceMax, page: 0 },
+                  { brands: next.brands },
+                );
               }}
             />
 

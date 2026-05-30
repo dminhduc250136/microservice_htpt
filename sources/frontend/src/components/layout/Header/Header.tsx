@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import styles from './Header.module.css';
 import { useAuth } from '@/providers/AuthProvider';
 import { logout as apiLogout } from '@/services/auth';
@@ -17,13 +17,35 @@ export default function Header() {
   const { data: cartItems = [] } = useCart();
   const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const userMenuRef = useRef<HTMLDivElement>(null);
 
+  // Sync ô search với URL khi đang ở /products. F5/back/bookmark đều giữ text đúng;
+  // tránh tình trạng "URL có keyword nhưng ô header trống" gây hiểu nhầm.
+  useEffect(() => {
+    if (pathname === '/products') {
+      setSearchTerm(searchParams.get('keyword') ?? '');
+    }
+  }, [pathname, searchParams]);
+
   // Submit search → điều hướng tới /products?keyword=... (trang Sản phẩm tự lọc).
+  // Khi user search lại từ /products: chỉ cập nhật keyword, giữ các filter khác.
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const q = searchTerm.trim();
-    router.push(q ? `/products?keyword=${encodeURIComponent(q)}` : '/products');
+    if (pathname === '/products') {
+      // Merge keyword vào URL hiện tại để không reset category/brand/price.
+      const next = new URLSearchParams(searchParams.toString());
+      if (q) next.set('keyword', q);
+      else next.delete('keyword');
+      next.delete('page'); // reset page khi đổi keyword
+      const qs = next.toString();
+      router.replace(qs ? `/products?${qs}` : '/products', { scroll: false });
+    } else {
+      // Từ trang khác → push trang sản phẩm mới với chỉ keyword.
+      router.push(q ? `/products?keyword=${encodeURIComponent(q)}` : '/products');
+    }
     setIsMobileMenuOpen(false);
   };
 
