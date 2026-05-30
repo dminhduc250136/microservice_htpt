@@ -53,6 +53,8 @@
   border-radius: 50%;
   background: var(--primary);
   color: var(--on-primary);
+  object-fit: cover;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
