@@ -142,23 +142,10 @@ export function listAdminCategories(): Promise<PaginatedResponse<Category>> {
 }
 
 /**
- * Upload ảnh sản phẩm (multipart/form-data) → trả về URL relative để gán vào thumbnailUrl.
- * Backend serve file qua /uploads/<name> (Caddy route → product-service static handler).
+ * Upload ảnh sản phẩm — wrapper mỏng quanh {@link uploadImage}, chỉ chốt endpoint.
+ * Trả về URL relative dạng /api/products/uploads/products/<name> để gán vào thumbnailUrl.
  */
-export async function uploadProductImage(file: File): Promise<string> {
-  const { getAccessToken } = await import('./token');
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
-  const token = getAccessToken();
-  const form = new FormData();
-  form.append('file', file);
-  const res = await fetch(`${baseUrl}/api/products/admin/upload`, {
-    method: 'POST',
-    body: form,
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-  });
-  if (!res.ok) {
-    throw new Error(`Upload failed: ${res.status}`);
-  }
-  const env = await res.json();
-  return String(env?.data?.url ?? '');
+import { uploadImage } from './upload';
+export function uploadProductImage(file: File): Promise<string> {
+  return uploadImage('/api/products/admin/upload', file);
 }

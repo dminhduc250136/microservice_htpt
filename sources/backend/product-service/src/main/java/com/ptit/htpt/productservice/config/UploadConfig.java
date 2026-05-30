@@ -8,8 +8,11 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 /**
  * Serve file đã upload (lưu ở {@code app.uploads.dir}) qua URL
  * {@code /products/uploads/**} — nằm dưới prefix /products để khớp gateway
- * route /api/products/**. Browser truy cập qua {@code /api/products/uploads/<file>}.
+ * route /api/products/**. Browser truy cập qua {@code /api/products/uploads/<subdir>/<file>}.
  * Volume Docker mount thư mục này nên file persist qua restart container.
+ *
+ * <p>Pattern {@code /**} bắt cả subdir (products/, avatars/, …) — ImageStorageService
+ * lưu file vào {@code <uploadsDir>/<subdir>/<name>} tương ứng.
  */
 @Configuration
 public class UploadConfig implements WebMvcConfigurer {
