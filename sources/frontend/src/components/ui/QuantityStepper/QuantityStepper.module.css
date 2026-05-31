@@ -1,0 +1,90 @@
+/* QuantityStepper — bê style từ .quantitySelector/.qtyBtn/.qtyValue cũ
+   (products/[slug]/page.module.css ~236-282 & cart/page.module.css ~183-218),
+   thêm style cho <input> và 2 size sm/md. */
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 1.5px solid rgba(195, 198, 214, 0.2);
+  flex-shrink: 0;
+}
+
+.stepper[data-disabled] {
+  opacity: 0.6;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-container-low);
+  border: none;
+  cursor: pointer;
+  color: var(--on-surface);
+  transition: background-color var(--transition-fast);
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--surface-container);
+}
+
+.btn:disabled {
+  color: var(--outline-variant);
+  cursor: not-allowed;
+}
+
+.input {
+  text-align: center;
+  font-weight: var(--weight-semibold);
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
+  border: none;
+  outline: none;
+  padding: 0;
+  /* Bỏ spinner mặc định (phòng trường hợp trình duyệt hiển thị cho inputMode=numeric) */
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.input::-webkit-outer-spin-button,
+.input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.input:focus {
+  background: var(--surface-container);
+}
+
+/* ===== Size md (product detail) — giữ touch target WCAG 2.5.5 ===== */
+.md .btn {
+  min-width: 44px;
+  min-height: 44px;
+  width: 44px;
+  height: 48px;
+  font-size: var(--text-title-md);
+}
+
+.md .input {
+  width: 56px;
+  height: 48px;
+  font-size: var(--text-body-lg);
+}
+
+/* ===== Size sm (cart row) — gọn hơn ===== */
+.sm .btn {
+  min-width: 36px;
+  min-height: 36px;
+  width: 36px;
+  height: 36px;
+  font-size: var(--text-title-sm);
+}
+
+.sm .input {
+  width: 44px;
+  height: 36px;
+  font-size: var(--text-body-md);
+}
