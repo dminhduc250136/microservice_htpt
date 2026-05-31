@@ -257,6 +257,20 @@ export interface CouponPreview {
 }
 
 /**
+ * AvailableCoupon: 1 item từ GET /api/orders/coupons/available — danh sách mã
+ * khả dụng để hiển thị dropdown gợi ý (active + chưa hết hạn + còn lượt dùng).
+ * KHÔNG chứa usedCount/maxTotalUses (thông tin nội bộ).
+ */
+export interface AvailableCoupon {
+  code: string;
+  type: 'PERCENT' | 'FIXED';
+  value: number;
+  minOrderAmount: number;
+  /** ISO instant; null = không hết hạn. */
+  expiresAt: string | null;
+}
+
+/**
  * AdminCoupon: response từ /api/orders/admin/coupons endpoints (Plan 20-02 D-14).
  * Shape mirror BE CouponDto record.
  */

@@ -164,7 +164,8 @@ export default function CartPage() {
     () => cartItems.filter((i) => selectedIds.has(i.productId)),
     [cartItems, selectedIds]
   );
-  const selectedCount = selectedItems.reduce((s, i) => s + displayQty(i), 0);
+  // Đếm số sản phẩm KHÁC BIỆT (số dòng đã chọn), không cộng dồn số lượng từng mục.
+  const selectedCount = selectedItems.length;
   const subtotal = selectedItems.reduce((sum, item) => sum + item.price * displayQty(item), 0);
   const shippingFee = subtotal >= 1000000 ? 0 : 30000;
   const total = subtotal + shippingFee;
@@ -315,7 +316,7 @@ export default function CartPage() {
                   <span>{selectedItems.length} / {cartItems.length} sản phẩm</span>
                 </div>
                 <div className={styles.summaryRow}>
-                  <span>Tạm tính ({selectedCount} SP)</span>
+                  <span>Tạm tính ({selectedCount} loại SP)</span>
                   <span>{formatPrice(subtotal)}</span>
                 </div>
                 <div className={styles.summaryRow}>

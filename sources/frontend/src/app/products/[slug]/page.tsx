@@ -13,7 +13,7 @@ import ProductCard from '@/components/ui/ProductCard/ProductCard';
 import RetrySection from '@/components/ui/RetrySection/RetrySection';
 import { useToast } from '@/components/ui/Toast/Toast';
 import { useQueryClient } from '@tanstack/react-query';
-import { getProductBySlug, listProducts } from '@/services/products';
+import { getProductBySlug, getProductById, listProducts } from '@/services/products';
 import { addToCart } from '@/services/cart';
 import { CART_QUERY_KEY } from '@/hooks/useCart';
 import { isApiError } from '@/services/errors';
@@ -43,10 +43,19 @@ export default function ProductDetailPage() {
     setLoading(true);
     setFailed(false);
     try {
-      const p = await getProductBySlug(slug);
+      // Param có thể là slug (link SEO) HOẶC productId (vd link từ giỏ hàng — CartItem
+      // chỉ có productId, không có slug). Thử slug trước; nếu không khớp thì fallback
+      // tra theo id để link bằng id vẫn mở đúng trang chi tiết thay vì 404.
+      let p = await getProductBySlug(slug);
       if (!p) {
-        // Slug lookup returned null (no match) → Claude's Discretion: direct
-        // resource navigation → 404 page.
+        try {
+          p = await getProductById(slug);
+        } catch {
+          p = null;
+        }
+      }
+      if (!p) {
+        // Không khớp cả slug lẫn id → direct resource navigation → 404 page.
         notFound();
         return;
       }

@@ -18,7 +18,7 @@ import {
   useClearCart,
 } from '@/hooks/useCart';
 import { createOrder } from '@/services/orders';
-import { validateCoupon } from '@/services/coupons';
+import { validateCoupon, listAvailableCoupons } from '@/services/coupons';
 import { listAddresses } from '@/services/users';
 import { isApiError } from '@/services/errors';
 import { formatPrice } from '@/services/api';
@@ -26,7 +26,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import AddressPicker from '@/components/ui/AddressPicker/AddressPicker';
 import { useApplyCoupon } from '@/hooks/useApplyCoupon';
 import { formatCouponError, isCouponError } from '@/lib/couponErrorMessages';
-import type { SavedAddress, CouponPreview } from '@/types';
+import type { SavedAddress, CouponPreview, AvailableCoupon } from '@/types';
 
 interface StockConflictItem {
   productId: string;
@@ -74,7 +74,7 @@ function CheckoutPageContent() {
     district: '',
     city: '',
     note: '',
-    paymentMethod: 'COD' as 'COD' | 'BANK_TRANSFER' | 'E_WALLET' | 'MOMO',
+    paymentMethod: 'COD' as 'COD' | 'MOMO',
   });
   const [loading, setLoading] = useState(false);
 
@@ -134,8 +134,22 @@ function CheckoutPageContent() {
   const [appliedCoupon, setAppliedCoupon] = useState<CouponPreview | null>(null);
   const applyCouponMutation = useApplyCoupon();
 
-  const handleApplyCoupon = async () => {
-    const code = couponInput.trim().toUpperCase();
+  // Danh sách mã khả dụng để hiển thị dropdown gợi ý (thay vì gõ tay).
+  const [availableCoupons, setAvailableCoupons] = useState<AvailableCoupon[]>([]);
+
+  // Fetch danh sách mã khả dụng 1 lần khi mount. Best-effort: fail thì ẩn gợi ý,
+  // user vẫn nhập tay được (không toast lỗi để tránh làm phiền).
+  useEffect(() => {
+    let alive = true;
+    listAvailableCoupons()
+      .then((list) => { if (alive) setAvailableCoupons(list); })
+      .catch(() => { if (alive) setAvailableCoupons([]); });
+    return () => { alive = false; };
+  }, []);
+
+  // Áp 1 mã theo code (dùng chung cho nút "Áp dụng" và bấm chip gợi ý).
+  const applyCode = async (rawCode: string) => {
+    const code = rawCode.trim().toUpperCase();
     if (!code) {
       showToast('Vui lòng nhập mã giảm giá', 'error');
       return;
@@ -154,6 +168,8 @@ function CheckoutPageContent() {
       }
     }
   };
+
+  const handleApplyCoupon = () => applyCode(couponInput);
 
   const handleRemoveCoupon = () => {
     setAppliedCoupon(null);
@@ -342,8 +358,6 @@ function CheckoutPageContent() {
                 {(
                   [
                     { value: 'COD', label: 'Thanh toán khi nhận hàng (COD)', icon: '💵' },
-                    { value: 'BANK_TRANSFER', label: 'Chuyển khoản ngân hàng', icon: '🏦' },
-                    { value: 'E_WALLET', label: 'Ví điện tử (ZaloPay, ...)', icon: '📱' },
                     { value: 'MOMO', label: 'Thanh toán qua MoMo', icon: '💳' },
                   ] as const
                 ).map((m) => (
@@ -395,22 +409,64 @@ function CheckoutPageContent() {
               <div className={styles.couponSection}>
                 <h4 className={styles.couponTitle}>Mã giảm giá</h4>
                 {!appliedCoupon ? (
-                  <div className={styles.couponRow}>
-                    <Input
-                      placeholder="Nhập mã giảm giá"
-                      value={couponInput}
-                      onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                      fullWidth
-                    />
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={handleApplyCoupon}
-                      loading={applyCouponMutation.isPending}
-                    >
-                      Áp dụng
-                    </Button>
-                  </div>
+                  <>
+                    <div className={styles.couponRow}>
+                      <Input
+                        placeholder="Nhập mã giảm giá"
+                        value={couponInput}
+                        onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                        fullWidth
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={handleApplyCoupon}
+                        loading={applyCouponMutation.isPending}
+                      >
+                        Áp dụng
+                      </Button>
+                    </div>
+
+                    {/* Dropdown gợi ý các mã khả dụng — bấm để áp ngay, không cần nhớ gõ tay.
+                        Mã chưa đủ điều kiện đơn tối thiểu bị disable + ghi rõ điều kiện. */}
+                    {availableCoupons.length > 0 && (
+                      <>
+                        <span className={styles.couponSuggestLabel}>
+                          Mã giảm giá khả dụng:
+                        </span>
+                        <div className={styles.couponSuggestList}>
+                          {availableCoupons.map((c) => {
+                            const eligible = subtotal >= c.minOrderAmount;
+                            const valueLabel =
+                              c.type === 'PERCENT'
+                                ? `Giảm ${c.value}%`
+                                : `Giảm ${formatPrice(c.value)}`;
+                            return (
+                              <button
+                                key={c.code}
+                                type="button"
+                                className={styles.couponSuggestItem}
+                                onClick={() => applyCode(c.code)}
+                                disabled={!eligible || applyCouponMutation.isPending}
+                                title={eligible ? 'Áp dụng mã này' : 'Chưa đủ điều kiện'}
+                              >
+                                <span className={styles.couponSuggestMain}>
+                                  <span className={styles.couponSuggestCode}>{c.code}</span>
+                                  <span className={styles.couponSuggestCond}>
+                                    {c.minOrderAmount > 0
+                                      ? `Cho đơn từ ${formatPrice(c.minOrderAmount)}`
+                                      : 'Áp dụng mọi đơn hàng'}
+                                    {!eligible && ' — chưa đủ điều kiện'}
+                                  </span>
+                                </span>
+                                <span className={styles.couponSuggestValue}>{valueLabel}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </>
                 ) : (
                   <div className={styles.couponChip}>
                     <span className={styles.couponChipCode}>{appliedCoupon.code}</span>

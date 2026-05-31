@@ -89,6 +89,59 @@
   font-weight: var(--weight-medium);
 }
 
+/* === Dropdown gợi ý mã giảm giá khả dụng === */
+.couponSuggestLabel {
+  font-size: var(--text-body-sm);
+  color: var(--on-surface-variant);
+}
+.couponSuggestList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.couponSuggestItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-container-low, rgba(195,198,214,0.06));
+  border: 1px solid rgba(195,198,214,0.2);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+.couponSuggestItem:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: rgba(94,124,255,0.08);
+}
+.couponSuggestItem:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.couponSuggestMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.couponSuggestCode {
+  font-weight: var(--weight-semibold);
+  color: var(--primary);
+  font-size: var(--text-body-md);
+}
+.couponSuggestCond {
+  font-size: var(--text-body-sm);
+  color: var(--on-surface-variant);
+}
+.couponSuggestValue {
+  color: #16a34a;
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-body-md);
+  white-space: nowrap;
+}
+
 /* AddressPicker divider */
 .pickerDivider {
   text-align: center;
