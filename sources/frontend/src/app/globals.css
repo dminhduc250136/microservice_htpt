@@ -218,7 +218,11 @@ body {
 html,
 body {
   max-width: 100vw;
-  overflow-x: hidden;
+  /* `clip` thay vì `hidden`: vẫn chặn tràn ngang nhưng KHÔNG tạo scroll
+     container mới → không phá vỡ position: sticky của Header (header dính
+     khi scroll). `hidden` trên html/body là nguyên nhân kinh điển làm
+     sticky ngừng hoạt động. */
+  overflow-x: clip;
 }
 
 img,
