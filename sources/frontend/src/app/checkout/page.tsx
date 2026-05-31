@@ -136,6 +136,8 @@ function CheckoutPageContent() {
 
   // Danh sách mã khả dụng để hiển thị dropdown gợi ý (thay vì gõ tay).
   const [availableCoupons, setAvailableCoupons] = useState<AvailableCoupon[]>([]);
+  // Đóng/mở dropdown danh sách mã (mặc định đóng — tránh chiếm hết màn hình khi nhiều mã).
+  const [showCouponList, setShowCouponList] = useState(false);
 
   // Fetch danh sách mã khả dụng 1 lần khi mount. Best-effort: fail thì ẩn gợi ý,
   // user vẫn nhập tay được (không toast lỗi để tránh làm phiền).
@@ -158,6 +160,7 @@ function CheckoutPageContent() {
       const preview = await applyCouponMutation.mutateAsync({ code, cartTotal: subtotal });
       setAppliedCoupon(preview);
       setCouponInput('');
+      setShowCouponList(false);
       showToast('Áp dụng mã thành công', 'success');
     } catch (err) {
       if (isApiError(err) && isCouponError(err.code)) {
@@ -427,44 +430,55 @@ function CheckoutPageContent() {
                       </Button>
                     </div>
 
-                    {/* Dropdown gợi ý các mã khả dụng — bấm để áp ngay, không cần nhớ gõ tay.
-                        Mã chưa đủ điều kiện đơn tối thiểu bị disable + ghi rõ điều kiện. */}
+                    {/* Dropdown gợi ý mã khả dụng — mặc định ĐÓNG, bấm mới mở để tránh
+                        chiếm hết màn hình khi có nhiều mã. List có max-height + scroll. */}
                     {availableCoupons.length > 0 && (
-                      <>
-                        <span className={styles.couponSuggestLabel}>
-                          Mã giảm giá khả dụng:
-                        </span>
-                        <div className={styles.couponSuggestList}>
-                          {availableCoupons.map((c) => {
-                            const eligible = subtotal >= c.minOrderAmount;
-                            const valueLabel =
-                              c.type === 'PERCENT'
-                                ? `Giảm ${c.value}%`
-                                : `Giảm ${formatPrice(c.value)}`;
-                            return (
-                              <button
-                                key={c.code}
-                                type="button"
-                                className={styles.couponSuggestItem}
-                                onClick={() => applyCode(c.code)}
-                                disabled={!eligible || applyCouponMutation.isPending}
-                                title={eligible ? 'Áp dụng mã này' : 'Chưa đủ điều kiện'}
-                              >
-                                <span className={styles.couponSuggestMain}>
-                                  <span className={styles.couponSuggestCode}>{c.code}</span>
-                                  <span className={styles.couponSuggestCond}>
-                                    {c.minOrderAmount > 0
-                                      ? `Cho đơn từ ${formatPrice(c.minOrderAmount)}`
-                                      : 'Áp dụng mọi đơn hàng'}
-                                    {!eligible && ' — chưa đủ điều kiện'}
+                      <div className={styles.couponSuggest}>
+                        <button
+                          type="button"
+                          className={styles.couponSuggestToggle}
+                          onClick={() => setShowCouponList((v) => !v)}
+                          aria-expanded={showCouponList}
+                        >
+                          <span>Chọn mã giảm giá ({availableCoupons.length})</span>
+                          <span className={styles.couponSuggestCaret} data-open={showCouponList || undefined}>
+                            ▾
+                          </span>
+                        </button>
+
+                        {showCouponList && (
+                          <div className={styles.couponSuggestList} role="listbox">
+                            {availableCoupons.map((c) => {
+                              const eligible = subtotal >= c.minOrderAmount;
+                              const valueLabel =
+                                c.type === 'PERCENT'
+                                  ? `Giảm ${c.value}%`
+                                  : `Giảm ${formatPrice(c.value)}`;
+                              return (
+                                <button
+                                  key={c.code}
+                                  type="button"
+                                  className={styles.couponSuggestItem}
+                                  onClick={() => applyCode(c.code)}
+                                  disabled={!eligible || applyCouponMutation.isPending}
+                                  title={eligible ? 'Áp dụng mã này' : 'Chưa đủ điều kiện'}
+                                >
+                                  <span className={styles.couponSuggestMain}>
+                                    <span className={styles.couponSuggestCode}>{c.code}</span>
+                                    <span className={styles.couponSuggestCond}>
+                                      {c.minOrderAmount > 0
+                                        ? `Cho đơn từ ${formatPrice(c.minOrderAmount)}`
+                                        : 'Áp dụng mọi đơn hàng'}
+                                      {!eligible && ' — chưa đủ điều kiện'}
+                                    </span>
                                   </span>
-                                </span>
-                                <span className={styles.couponSuggestValue}>{valueLabel}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </>
+                                  <span className={styles.couponSuggestValue}>{valueLabel}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                     )}
                   </>
                 ) : (
