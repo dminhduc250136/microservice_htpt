@@ -13,8 +13,14 @@
 #
 # Hostname thứ 2 (HTTP, ngrok-free.dev) phục vụ MoMo IPN callback. ngrok client trên
 # VM forward static domain → localhost:80; TLS do ngrok edge handle nên Caddy chỉ
-# cần match HTTP. Lý do dùng ngrok cho IPN: MoMo sandbox không gửi callback tới
-# domain Azure cloudapp dài; ngrok-free.dev tunnel hoạt động ổn định.
+# cần match HTTP. Lý do dùng ngrok cho IPN: MoMo sandbox KHÔNG gửi IPN (server→server)
+# tới domain thật của site — đã kiểm chứng cả domain Azure cloudapp LẪN n24shop.io.vn
+# đều bị MoMo bỏ qua (IP MoMo 118.69.210.244 chỉ gọi tới ngrok). redirectUrl (browser)
+# thì vẫn dùng n24shop.io.vn bình thường. ngrok-free.dev là đường IPN duy nhất hoạt động.
+#
+# LƯU Ý VẬN HÀNH: site block gộp 2 host (HTTPS io.vn + HTTP ngrok) tạo 2 server listener
+# (:443 và :80). Sau khi sửa Caddyfile phải `docker compose restart caddy` — `caddy reload`
+# KHÔNG tạo lại server :80 nên IPN ngrok sẽ bị 308 redirect (sự cố 2026-05-31).
 
 {
 	email {$ACME_EMAIL}
