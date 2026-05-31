@@ -15,7 +15,9 @@ export default function Header() {
   const [searchTerm, setSearchTerm] = useState('');
   const { isAuthenticated, user, logout, login } = useAuth();
   const { data: cartItems = [] } = useCart();
-  const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
+  // Badge đếm số LOẠI sản phẩm khác biệt (số dòng trong giỏ), không cộng dồn
+  // tổng số lượng — đồng bộ với cách đếm ở trang giỏ hàng.
+  const cartCount = cartItems.length;
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
