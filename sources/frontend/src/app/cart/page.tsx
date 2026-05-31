@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { isInternalUploadUrl } from '@/lib/imageHelpers';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
 import Button from '@/components/ui/Button/Button';
+import QuantityStepper from '@/components/ui/QuantityStepper/QuantityStepper';
 import { useToast } from '@/components/ui/Toast/Toast';
 import {
   useCart,
@@ -65,17 +66,89 @@ export default function CartPage() {
     setSelectedIds(allSelected ? new Set() : new Set(cartItems.map((i) => i.productId)));
   };
 
-  const handleQuantityChange = (productId: string, qty: number) => {
-    updateMutation.mutate(
-      { productId, qty },
-      {
-        onError: (err) => {
-          const ctx = parseCartError(err);
-          showToast(ctx.message, 'error');
+  // === Optimistic + debounce số lượng (BUG-FIX: cart +/- call API mỗi lần bấm) ===
+  // optimisticQty: overlay số lượng hiển thị ngay khi user chỉnh, trước khi server
+  // xác nhận. Key = productId. Xóa key sau khi server đồng bộ xong (cartItems đổi).
+  const [optimisticQty, setOptimisticQty] = useState<Record<string, number>>({});
+  // Timer debounce theo từng productId — gom nhiều lần bấm liên tiếp thành 1 API call.
+  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  // Qty đang chờ gửi (chưa hết debounce) theo productId — để flush trước khi checkout.
+  const pendingQty = useRef<Record<string, number>>({});
+  const DEBOUNCE_MS = 600;
+
+  // Số lượng hiển thị: ưu tiên optimistic, fallback giá trị server.
+  const displayQty = useCallback(
+    (item: { productId: string; quantity: number }) =>
+      optimisticQty[item.productId] ?? item.quantity,
+    [optimisticQty],
+  );
+
+  // Dọn timer khi unmount (tránh setTimeout chạy sau khi component đã rời).
+  useEffect(() => {
+    const timers = debounceTimers.current;
+    return () => {
+      Object.values(timers).forEach(clearTimeout);
+    };
+  }, []);
+
+  // Xóa optimistic key cho productId (sau khi server đã đồng bộ hoặc cần rollback).
+  const clearOptimistic = useCallback((productId: string) => {
+    setOptimisticQty((prev) => {
+      if (!(productId in prev)) return prev;
+      const next = { ...prev };
+      delete next[productId];
+      return next;
+    });
+  }, []);
+
+  // Gửi update lên server cho 1 productId (dùng chung cho debounce timer và flush).
+  const commitQty = useCallback(
+    (productId: string, qty: number) => {
+      delete pendingQty.current[productId];
+      updateMutation.mutate(
+        { productId, qty },
+        {
+          // Server đã xác nhận + React Query invalidate ['cart'] → bỏ overlay optimistic,
+          // UI đọc lại từ cartItems server (nguồn sự thật).
+          onSuccess: () => clearOptimistic(productId),
+          onError: (err) => {
+            // Rollback optimistic về giá trị server, báo lỗi (vd STOCK_SHORTAGE
+            // nếu stock đổi giữa chừng).
+            clearOptimistic(productId);
+            const ctx = parseCartError(err);
+            showToast(ctx.message, 'error');
+          },
         },
-      }
-    );
+      );
+    },
+    [updateMutation, clearOptimistic, showToast],
+  );
+
+  const handleQuantityChange = (productId: string, qty: number) => {
+    // 1. Cập nhật optimistic ngay → UI phản hồi tức thì.
+    setOptimisticQty((prev) => ({ ...prev, [productId]: qty }));
+    pendingQty.current[productId] = qty;
+
+    // 2. Debounce API call theo productId — gom nhiều lần bấm thành 1 call cuối.
+    if (debounceTimers.current[productId]) {
+      clearTimeout(debounceTimers.current[productId]);
+    }
+    debounceTimers.current[productId] = setTimeout(() => {
+      delete debounceTimers.current[productId];
+      commitQty(productId, qty);
+    }, DEBOUNCE_MS);
   };
+
+  // Flush mọi update đang chờ debounce (gọi trước khi rời trang / checkout) để server
+  // nhận qty mới nhất, tránh checkout với số lượng cũ.
+  const flushPendingQty = useCallback(() => {
+    for (const [productId, timer] of Object.entries(debounceTimers.current)) {
+      clearTimeout(timer);
+      delete debounceTimers.current[productId];
+      const qty = pendingQty.current[productId];
+      if (qty !== undefined) commitQty(productId, qty);
+    }
+  }, [commitQty]);
 
   const handleRemove = (productId: string) => {
     removeMutation.mutate(productId, {
@@ -91,8 +164,8 @@ export default function CartPage() {
     () => cartItems.filter((i) => selectedIds.has(i.productId)),
     [cartItems, selectedIds]
   );
-  const selectedCount = selectedItems.reduce((s, i) => s + i.quantity, 0);
-  const subtotal = selectedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const selectedCount = selectedItems.reduce((s, i) => s + displayQty(i), 0);
+  const subtotal = selectedItems.reduce((sum, item) => sum + item.price * displayQty(item), 0);
   const shippingFee = subtotal >= 1000000 ? 0 : 30000;
   const total = subtotal + shippingFee;
 
@@ -102,6 +175,9 @@ export default function CartPage() {
       showToast('Vui lòng chọn ít nhất một sản phẩm để thanh toán', 'error');
       return;
     }
+    // Flush các thay đổi số lượng đang chờ debounce → server có qty mới nhất trước
+    // khi checkout đọc lại giỏ hàng (tránh thanh toán theo số lượng cũ).
+    flushPendingQty();
     const ids = selectedItems.map((i) => i.productId).join(',');
     router.push(`/checkout?items=${encodeURIComponent(ids)}`);
   };
@@ -148,8 +224,9 @@ export default function CartPage() {
               )}
 
               {cartItems.map((item) => {
+                const qty = displayQty(item);
                 // stock=0 on legacy items (added before this fix) — treat as uncapped
-                const atStockLimit = item.stock > 0 && item.quantity >= item.stock;
+                const atStockLimit = item.stock > 0 && qty >= item.stock;
                 const checked = selectedIds.has(item.productId);
                 return (
                   <div
@@ -203,26 +280,21 @@ export default function CartPage() {
                       </div>
 
                       <div className={styles.itemBottom}>
-                        <div className={styles.quantitySelector}>
-                          <button
-                            className={styles.qtyBtn}
-                            onClick={() => handleQuantityChange(item.productId, item.quantity - 1)}
-                            disabled={item.quantity <= 1 || updateMutation.isPending}
-                          >
-                            −
-                          </button>
-                          <span className={styles.qtyValue}>{item.quantity}</span>
-                          <button
-                            className={styles.qtyBtn}
-                            onClick={() => handleQuantityChange(item.productId, item.quantity + 1)}
-                            disabled={atStockLimit || updateMutation.isPending}
-                          >
-                            +
-                          </button>
-                        </div>
+                        <QuantityStepper
+                          value={qty}
+                          onChange={(next) => handleQuantityChange(item.productId, next)}
+                          max={item.stock > 0 ? item.stock : undefined}
+                          size="sm"
+                          ariaLabel={`Số lượng ${item.name}`}
+                          onClamp={(clampedTo, reason) => {
+                            if (reason === 'max') {
+                              showToast(`Chỉ còn ${clampedTo} sản phẩm`, 'error');
+                            }
+                          }}
+                        />
                         <div className={styles.itemPrice}>
-                          <span className={styles.priceTotal}>{formatPrice(item.price * item.quantity)}</span>
-                          {item.quantity > 1 && (
+                          <span className={styles.priceTotal}>{formatPrice(item.price * qty)}</span>
+                          {qty > 1 && (
                             <span className={styles.priceUnit}>{formatPrice(item.price)} / sản phẩm</span>
                           )}
                         </div>

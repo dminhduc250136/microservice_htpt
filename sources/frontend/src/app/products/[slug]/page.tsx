@@ -8,6 +8,7 @@ import { useParams, useRouter, notFound } from 'next/navigation';
 import styles from './page.module.css';
 import Button from '@/components/ui/Button/Button';
 import Badge from '@/components/ui/Badge/Badge';
+import QuantityStepper from '@/components/ui/QuantityStepper/QuantityStepper';
 import ProductCard from '@/components/ui/ProductCard/ProductCard';
 import RetrySection from '@/components/ui/RetrySection/RetrySection';
 import { useToast } from '@/components/ui/Toast/Toast';
@@ -218,7 +219,7 @@ export default function ProductDetailPage() {
               {/* Stock — Phase 15 PUB-04 (D-15): 3-tier badge với icon prefix WCAG 1.4.1 */}
               <div className={styles.stockInfo}>
                 {(product.stock ?? 0) >= 10 && (
-                  <Badge variant="success">✓ Còn hàng</Badge>
+                  <Badge variant="success">✓ Còn hàng ({product.stock})</Badge>
                 )}
                 {(product.stock ?? 0) > 0 && (product.stock ?? 0) < 10 && (
                   <Badge variant="warning">⚠ Sắp hết hàng (còn {product.stock})</Badge>
@@ -231,21 +232,18 @@ export default function ProductDetailPage() {
               {/* Quantity & Add to Cart — Phase 15 PUB-04 (D-16): hide hoàn toàn khi stock=0 */}
               {(product.stock ?? 0) > 0 ? (
                 <div className={styles.actions}>
-                  <div className={styles.quantitySelector}>
-                    <button
-                      type="button"
-                      className={styles.qtyBtn}
-                      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                      disabled={quantity <= 1}
-                    >−</button>
-                    <span className={styles.qtyValue}>{quantity}</span>
-                    <button
-                      type="button"
-                      className={styles.qtyBtn}
-                      onClick={() => setQuantity((q) => Math.min(product.stock ?? 1, q + 1))}
-                      disabled={quantity >= (product.stock ?? 1)}
-                    >+</button>
-                  </div>
+                  <QuantityStepper
+                    value={quantity}
+                    onChange={setQuantity}
+                    max={product.stock}
+                    size="md"
+                    ariaLabel={`Số lượng ${product.name}`}
+                    onClamp={(clampedTo, reason) => {
+                      if (reason === 'max') {
+                        showToast(`Chỉ còn ${clampedTo} sản phẩm`, 'error');
+                      }
+                    }}
+                  />
                   <Button
                     size="lg"
                     fullWidth
