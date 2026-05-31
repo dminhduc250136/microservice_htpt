@@ -10,12 +10,14 @@ import com.ptit.htpt.orderservice.exception.CouponErrorCode;
 import com.ptit.htpt.orderservice.exception.CouponException;
 import com.ptit.htpt.orderservice.repository.CouponRedemptionRepository;
 import com.ptit.htpt.orderservice.repository.CouponRepository;
+import com.ptit.htpt.orderservice.web.CouponDtos.AvailableCouponResponse;
 import com.ptit.htpt.orderservice.web.CouponDtos.CouponPreviewResponse;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -240,5 +242,46 @@ class CouponPreviewServiceTest {
         "ANON10", new BigDecimal("1000000"), null);
 
     assertThat(resp.discountAmount()).isEqualByComparingTo("100000");
+  }
+
+  // ---------- Test P13: listAvailable chỉ trả coupon active + chưa hết hạn + còn lượt ----------
+  @Test
+  void p13_listAvailable_filtersOutUnusable() {
+    // Khả dụng
+    persistCoupon("AVAIL-OK", CouponType.PERCENT, new BigDecimal("10"),
+        new BigDecimal("200000"), null, null, true, 0);
+    // Inactive → loại
+    persistCoupon("AVAIL-INACTIVE", CouponType.FIXED, new BigDecimal("50000"),
+        null, null, null, false, 0);
+    // Expired → loại
+    persistCoupon("AVAIL-EXPIRED", CouponType.PERCENT, new BigDecimal("10"),
+        null, null, Instant.now().minus(1, ChronoUnit.HOURS), true, 0);
+    // Maxed (usedCount >= maxTotalUses) → loại
+    persistCoupon("AVAIL-MAXED", CouponType.PERCENT, new BigDecimal("10"),
+        null, 5, null, true, 5);
+
+    List<AvailableCouponResponse> available = previewService.listAvailable();
+
+    assertThat(available).extracting(AvailableCouponResponse::code)
+        .contains("AVAIL-OK")
+        .doesNotContain("AVAIL-INACTIVE", "AVAIL-EXPIRED", "AVAIL-MAXED");
+  }
+
+  // ---------- Test P14: listAvailable trả đúng các field công khai (không lộ usedCount) ----------
+  @Test
+  void p14_listAvailable_exposesPublicFields() {
+    Instant exp = Instant.now().plus(7, ChronoUnit.DAYS);
+    persistCoupon("FIELDS10", CouponType.PERCENT, new BigDecimal("15"),
+        new BigDecimal("300000"), null, exp, true, 0);
+
+    AvailableCouponResponse dto = previewService.listAvailable().stream()
+        .filter(c -> c.code().equals("FIELDS10"))
+        .findFirst()
+        .orElseThrow();
+
+    assertThat(dto.type()).isEqualTo("PERCENT");
+    assertThat(dto.value()).isEqualByComparingTo("15");
+    assertThat(dto.minOrderAmount()).isEqualByComparingTo("300000");
+    assertThat(dto.expiresAt()).isNotNull();
   }
 }

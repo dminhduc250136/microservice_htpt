@@ -6,10 +6,12 @@ import com.ptit.htpt.orderservice.exception.CouponErrorCode;
 import com.ptit.htpt.orderservice.exception.CouponException;
 import com.ptit.htpt.orderservice.repository.CouponRedemptionRepository;
 import com.ptit.htpt.orderservice.repository.CouponRepository;
+import com.ptit.htpt.orderservice.web.CouponDtos.AvailableCouponResponse;
 import com.ptit.htpt.orderservice.web.CouponDtos.CouponPreviewResponse;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,6 +46,23 @@ public class CouponPreviewService {
                               CouponRedemptionRepository redemptionRepository) {
     this.couponRepository = couponRepository;
     this.redemptionRepository = redemptionRepository;
+  }
+
+  /**
+   * Danh sách coupon khả dụng (active + chưa hết hạn + còn lượt dùng) để FE hiển thị
+   * dropdown gợi ý. Read-only, KHÔNG yêu cầu auth. KHÔNG lọc theo cartTotal ở đây —
+   * trả minOrderAmount để FE tự hiển thị điều kiện và disable mã chưa đủ điều kiện.
+   */
+  @Transactional(readOnly = true)
+  public List<AvailableCouponResponse> listAvailable() {
+    return couponRepository.findAvailable().stream()
+        .map(c -> new AvailableCouponResponse(
+            c.code(),
+            c.type().name(),
+            c.value(),
+            c.minOrderAmount(),
+            c.expiresAt()))
+        .toList();
   }
 
   @Transactional(readOnly = true)

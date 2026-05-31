@@ -1,6 +1,7 @@
 package com.ptit.htpt.orderservice.repository;
 
 import com.ptit.htpt.orderservice.domain.CouponEntity;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -25,6 +26,23 @@ public interface CouponRepository extends JpaRepository<CouponEntity, String> {
    * input trước khi gửi.
    */
   Optional<CouponEntity> findByCode(String code);
+
+  /**
+   * Danh sách coupon KHẢ DỤNG để hiển thị cho user (dropdown gợi ý mã ở checkout).
+   *
+   * <p>Lọc đúng các điều kiện mà {@code redeemAtomic} áp dụng (trừ minOrderAmount —
+   * cái này phụ thuộc cartTotal nên FE/service tự lọc theo từng đơn):
+   * active=true, chưa hết hạn, và chưa chạm trần lượt dùng. Sắp xếp theo
+   * createdAt giảm dần để mã mới nhất hiện trước.
+   */
+  @Query("""
+      SELECT c FROM CouponEntity c
+      WHERE c.active = true
+        AND (c.expiresAt IS NULL OR c.expiresAt > CURRENT_TIMESTAMP)
+        AND (c.maxTotalUses IS NULL OR c.usedCount < c.maxTotalUses)
+      ORDER BY c.createdAt DESC
+      """)
+  List<CouponEntity> findAvailable();
 
   /**
    * D-08 atomic redemption UPDATE conditional. Race-safe: nếu rowsAffected=0
