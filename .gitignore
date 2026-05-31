@@ -69,3 +69,6 @@ __pycache__/
 
 # Claude worktree artifact
 .claire/
+
+# Claude Code hướng dẫn cục bộ (không commit)
+CLAUDE.md
