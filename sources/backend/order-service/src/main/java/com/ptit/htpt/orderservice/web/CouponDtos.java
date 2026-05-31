@@ -113,4 +113,17 @@ public final class CouponDtos {
       BigDecimal finalTotal,
       String message
   ) {}
+
+  /**
+   * Public GET /orders/coupons/available item — chỉ lộ thông tin cần để FE hiển thị
+   * dropdown gợi ý mã (code, loại, giá trị, đơn tối thiểu, hạn dùng). KHÔNG lộ
+   * usedCount/maxTotalUses (thông tin nội bộ về tồn lượt dùng).
+   */
+  public record AvailableCouponResponse(
+      String code,
+      String type,
+      BigDecimal value,
+      BigDecimal minOrderAmount,
+      Instant expiresAt
+  ) {}
 }

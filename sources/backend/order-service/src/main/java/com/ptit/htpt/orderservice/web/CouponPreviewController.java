@@ -2,9 +2,12 @@ package com.ptit.htpt.orderservice.web;
 
 import com.ptit.htpt.orderservice.api.ApiResponse;
 import com.ptit.htpt.orderservice.service.CouponPreviewService;
+import com.ptit.htpt.orderservice.web.CouponDtos.AvailableCouponResponse;
 import com.ptit.htpt.orderservice.web.CouponDtos.CouponPreviewRequest;
 import com.ptit.htpt.orderservice.web.CouponDtos.CouponPreviewResponse;
 import jakarta.validation.Valid;
+import java.util.List;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -40,5 +43,17 @@ public class CouponPreviewController {
       @RequestHeader(value = "X-User-Id", required = false) String userId) {
     return ApiResponse.of(200, "Coupon preview",
         couponPreviewService.validate(req.code(), req.cartTotal(), userId));
+  }
+
+  /**
+   * GET /orders/coupons/available — danh sách mã giảm giá khả dụng để FE hiển thị
+   * dropdown gợi ý (thay vì user phải nhớ gõ tay). Public, read-only, KHÔNG gate
+   * JwtRoleGuard. KHÔNG lọc theo cartTotal — trả minOrderAmount để FE tự hiển thị
+   * điều kiện và disable mã chưa đủ điều kiện.
+   */
+  @GetMapping("/available")
+  public ApiResponse<List<AvailableCouponResponse>> available() {
+    return ApiResponse.of(200, "Available coupons",
+        couponPreviewService.listAvailable());
   }
 }

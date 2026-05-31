@@ -229,6 +229,8 @@ app:
       - { method: POST, pattern: "/api/users/auth/password/reset" }
       - { method: GET, pattern: "/api/products" }
       - { method: GET, pattern: "/api/products/**" }
+      # Danh sách mã giảm giá khả dụng — thông tin công khai, hiển thị gợi ý cho cả guest
+      - { method: GET, pattern: "/api/orders/coupons/available" }
       # Avatar static — <img> không tự kèm Authorization header nên phải public
       - { method: GET, pattern: "/api/users/uploads/**" }
       - { method: OPTIONS, pattern: "/**" }
