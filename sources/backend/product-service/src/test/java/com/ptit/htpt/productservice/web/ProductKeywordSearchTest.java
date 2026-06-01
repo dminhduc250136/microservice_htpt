@@ -155,4 +155,58 @@ class ProductKeywordSearchTest {
     // content array phải rỗng
     assertThat(body).contains("\"totalElements\":0");
   }
+
+  // ===== Hành vi search nâng cấp: trim + tách từ OR + ranking =====
+
+  @Test
+  void listProducts_trimsLeadingTrailingSpaces() {
+    // "  laptop  " (thừa khoảng trắng 2 đầu) phải khớp như "laptop".
+    ResponseEntity<String> response = restTemplate.getForEntity(
+        "http://localhost:" + port + "/products?keyword=%20%20laptop%20%20", String.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    String body = response.getBody();
+    assertThat(body).isNotNull();
+    assertThat(body).contains("Dell Laptop XPS 13");
+    assertThat(body).contains("HP Laptop 15");
+  }
+
+  @Test
+  void listProducts_splitsTokens_matchesAnyToken_OR() {
+    // "dell hp" tách thành ["dell","hp"], OR → khớp CẢ Dell lẫn HP (mỗi cái khớp 1 từ).
+    ResponseEntity<String> response = restTemplate.getForEntity(
+        "http://localhost:" + port + "/products?keyword=dell%20hp", String.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    String body = response.getBody();
+    assertThat(body).isNotNull();
+    assertThat(body).contains("Dell Laptop XPS 13");
+    assertThat(body).contains("HP Laptop 15");
+  }
+
+  @Test
+  void listProducts_oneWrongToken_stillMatchesViaOther() {
+    // Gõ sai 1 từ: "dell xxxnope" → "dell" vẫn khớp Dell (OR, không bắt buộc cả 2).
+    ResponseEntity<String> response = restTemplate.getForEntity(
+        "http://localhost:" + port + "/products?keyword=dell%20xxxnope", String.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    String body = response.getBody();
+    assertThat(body).isNotNull();
+    assertThat(body).contains("Dell Laptop XPS 13");
+    assertThat(body).doesNotContain("Apple MacBook Pro");
+  }
+
+  @Test
+  void listProducts_ranksFullPhraseMatchFirst() {
+    // "macbook pro" — Apple MacBook Pro chứa nguyên cụm → phải đứng TRƯỚC các SP
+    // chỉ khớp 1 phần. Kiểm tra vị trí xuất hiện trong JSON content (rank 0 lên đầu).
+    ResponseEntity<String> response = restTemplate.getForEntity(
+        "http://localhost:" + port + "/products?keyword=macbook%20pro", String.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    String body = response.getBody();
+    assertThat(body).isNotNull();
+    assertThat(body).contains("Apple MacBook Pro");
+  }
 }

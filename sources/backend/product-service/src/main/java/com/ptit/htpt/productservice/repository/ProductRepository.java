@@ -37,6 +37,59 @@ public interface ProductRepository extends JpaRepository<ProductEntity, String> 
       Pageable pageable);
 
   /**
+   * Search theo nhiều TỪ KHÓA tách bởi khoảng trắng (đã trim + lowercase ở service).
+   *
+   * <p>Mỗi token (t0..t4, tối đa 5; null = bỏ qua) khớp chuỗi con trong tên theo OR
+   * → CHỈ cần MỘT token khớp là SP được lấy. Nhờ OR, gõ sai 1 từ vẫn ra kết quả:
+   * "sam sunf" → "sam" khớp "Samsung", "sunf" không khớp gì → vẫn ra Samsung.
+   *
+   * <p>ORDER BY điểm relevance (rank 0 = tốt nhất):
+   * <ol>
+   *   <li>0: tên CHỨA nguyên cụm gốc :phrase (khớp sát nhất, vd gõ "macbook pro")
+   *   <li>1: tên BẮT ĐẦU bằng token đầu :t0 (vd "samsung..." khi tìm "sam")
+   *   <li>2: còn lại (chỉ khớp một phần token)
+   * </ol>
+   * Trong cùng rank: SP khớp NHIỀU token hơn lên trước (đếm số token khớp giảm dần),
+   * rồi tên ngắn hơn (sát từ khóa hơn), rồi soldCount giảm dần.
+   *
+   * <p>brands/price filter vẫn áp dụng để kết hợp với FilterSidebar.
+   */
+  @Query("SELECT p FROM ProductEntity p WHERE "
+      + "("
+      + "  (:t0 IS NOT NULL AND LOWER(p.name) LIKE CONCAT('%', :t0, '%')) "
+      + "  OR (:t1 IS NOT NULL AND LOWER(p.name) LIKE CONCAT('%', :t1, '%')) "
+      + "  OR (:t2 IS NOT NULL AND LOWER(p.name) LIKE CONCAT('%', :t2, '%')) "
+      + "  OR (:t3 IS NOT NULL AND LOWER(p.name) LIKE CONCAT('%', :t3, '%')) "
+      + "  OR (:t4 IS NOT NULL AND LOWER(p.name) LIKE CONCAT('%', :t4, '%')) "
+      + ") "
+      + "AND (:brands IS NULL OR p.brand IN :brands) "
+      + "AND (cast(:priceMin as big_decimal) IS NULL OR p.price >= :priceMin) "
+      + "AND (cast(:priceMax as big_decimal) IS NULL OR p.price <= :priceMax) "
+      + "ORDER BY "
+      + "CASE WHEN LOWER(p.name) LIKE CONCAT('%', :phrase, '%') THEN 0 "
+      + "     WHEN LOWER(p.name) LIKE CONCAT(:t0, '%') THEN 1 "
+      + "     ELSE 2 END ASC, "
+      + "("
+      + "  (CASE WHEN :t0 IS NOT NULL AND LOWER(p.name) LIKE CONCAT('%', :t0, '%') THEN 1 ELSE 0 END) "
+      + "+ (CASE WHEN :t1 IS NOT NULL AND LOWER(p.name) LIKE CONCAT('%', :t1, '%') THEN 1 ELSE 0 END) "
+      + "+ (CASE WHEN :t2 IS NOT NULL AND LOWER(p.name) LIKE CONCAT('%', :t2, '%') THEN 1 ELSE 0 END) "
+      + "+ (CASE WHEN :t3 IS NOT NULL AND LOWER(p.name) LIKE CONCAT('%', :t3, '%') THEN 1 ELSE 0 END) "
+      + "+ (CASE WHEN :t4 IS NOT NULL AND LOWER(p.name) LIKE CONCAT('%', :t4, '%') THEN 1 ELSE 0 END) "
+      + ") DESC, "
+      + "LENGTH(p.name) ASC, p.soldCount DESC")
+  Page<ProductEntity> searchByTokens(
+      @Param("t0") String t0,
+      @Param("t1") String t1,
+      @Param("t2") String t2,
+      @Param("t3") String t3,
+      @Param("t4") String t4,
+      @Param("phrase") String phrase,
+      @Param("brands") List<String> brands,
+      @Param("priceMin") BigDecimal priceMin,
+      @Param("priceMax") BigDecimal priceMax,
+      Pageable pageable);
+
+  /**
    * Phase 14 / Plan 01 (D-03): trả danh sách brand DISTINCT alphabetical, không null/empty.
    * Dùng cho FE FilterSidebar fetch danh sách thương hiệu.
    */

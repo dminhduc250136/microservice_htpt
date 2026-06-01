@@ -70,14 +70,33 @@ public class ProductCrudService {
                                           boolean includeDeleted, String keyword,
                                           List<String> brands, BigDecimal priceMin,
                                           BigDecimal priceMax) {
-    String normalizedKeyword = (keyword == null || keyword.isBlank()) ? null : keyword;
+    String normalizedKeyword = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
     List<String> normalizedBrands = (brands == null || brands.isEmpty()) ? null : brands;
 
-    Pageable pageable = PageRequest.of(Math.max(page, 0),
-        size <= 0 ? 20 : Math.min(size, 100), parseSort(sort));
+    int safePage = Math.max(page, 0);
+    int safeSize = size <= 0 ? 20 : Math.min(size, 100);
 
-    Page<ProductEntity> resultPage = productRepo.findWithFilters(
-        normalizedKeyword, normalizedBrands, priceMin, priceMax, pageable);
+    Page<ProductEntity> resultPage;
+    if (normalizedKeyword != null) {
+      // Có keyword → tách từng từ, search OR (chỉ cần 1 từ khớp), xếp theo độ khớp.
+      // OR giúp gõ sai 1 từ vẫn ra kết quả ("sam sunf" → "sam" khớp Samsung).
+      // KHÔNG dùng sort của user ở đây vì ORDER BY relevance nằm trong JPQL (tránh
+      // xung đột "multiple ORDER BY"); FE chọn sort khác chỉ áp dụng khi không search.
+      List<String> tokens = tokenizeKeyword(normalizedKeyword);
+      // Gộp khoảng trắng thừa để rank-0 (khớp nguyên cụm) hoạt động kể cả khi user
+      // gõ nhiều dấu cách giữa các từ (vd "sam   sung" → "sam sung").
+      String phrase = normalizedKeyword.toLowerCase().replaceAll("\\s+", " ");
+      Pageable pageable = PageRequest.of(safePage, safeSize); // KHÔNG kèm Sort
+      resultPage = productRepo.searchByTokens(
+          tokenAt(tokens, 0), tokenAt(tokens, 1), tokenAt(tokens, 2),
+          tokenAt(tokens, 3), tokenAt(tokens, 4),
+          phrase, normalizedBrands, priceMin, priceMax, pageable);
+    } else {
+      // Không keyword → giữ filter brand/price + tôn trọng sort do user chọn.
+      Pageable pageable = PageRequest.of(safePage, safeSize, parseSort(sort));
+      resultPage = productRepo.findWithFilters(
+          null, normalizedBrands, priceMin, priceMax, pageable);
+    }
 
     Map<String, Object> response = new LinkedHashMap<>();
     response.put("content", resultPage.getContent().stream().map(this::toResponse).toList());
@@ -242,6 +261,30 @@ public class ProductCrudService {
    * Phase 14 / Plan 01: parse sort param "field,dir" → Spring Sort (dùng cho Pageable).
    * Default updatedAt DESC nếu sort null/blank.
    */
+  /** Số token tối đa đưa vào searchByTokens (khớp t0..t4 trong query). */
+  private static final int MAX_TOKENS = 5;
+
+  /**
+   * Tách keyword (đã trim) thành các từ theo khoảng trắng, lowercase, bỏ từ rỗng,
+   * giới hạn {@link #MAX_TOKENS} từ đầu. Vd "  Sam  Sung  " → ["sam","sung"].
+   */
+  private static List<String> tokenizeKeyword(String keyword) {
+    List<String> tokens = new ArrayList<>();
+    for (String part : keyword.toLowerCase().split("\\s+")) {
+      String t = part.trim();
+      if (!t.isEmpty()) {
+        tokens.add(t);
+        if (tokens.size() >= MAX_TOKENS) break;
+      }
+    }
+    return tokens;
+  }
+
+  /** Token thứ i hoặc null nếu thiếu (để bind :t0..:t4, null = bỏ qua điều kiện đó). */
+  private static String tokenAt(List<String> tokens, int i) {
+    return i < tokens.size() ? tokens.get(i) : null;
+  }
+
   private static Sort parseSort(String sort) {
     if (sort == null || sort.isBlank()) {
       return Sort.by(Sort.Direction.DESC, "updatedAt");
