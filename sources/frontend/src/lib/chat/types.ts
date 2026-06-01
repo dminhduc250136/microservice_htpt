@@ -12,6 +12,8 @@ export interface ChatSpec {
 export interface ChatProduct {
   id: string;
   name: string;
+  /** Slug để tạo link tới trang chi tiết (/products/{slug}). */
+  slug: string | null;
   price: number;
   /** Giá gốc (gạch ngang) nếu đang giảm — để AI biết sản phẩm có khuyến mãi. */
   originalPrice: number | null;

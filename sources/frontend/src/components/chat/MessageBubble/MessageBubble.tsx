@@ -30,11 +30,34 @@ export default function MessageBubble({ role, content, isStreaming }: Props) {
         <div className={styles.markdown}>
           <ReactMarkdown
             components={{
-              a: ({ href, children }) => (
-                <a href={href} rel="noopener noreferrer" target="_blank">
-                  {children}
-                </a>
-              ),
+              a: ({ href, children }) => {
+                // Link tới trang chi tiết sản phẩm (/products/...) → render thành CARD
+                // bấm được; link khác giữ nguyên kiểu link chữ thường.
+                const isProductLink = typeof href === 'string' && href.startsWith('/products/');
+                if (isProductLink) {
+                  return (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.productCard}
+                    >
+                      <span className={styles.productCardBody}>
+                        <span className={styles.productCardName}>{children}</span>
+                        <span className={styles.productCardHint}>Xem chi tiết →</span>
+                      </span>
+                      <span className={styles.productCardArrow} aria-hidden="true">
+                        ›
+                      </span>
+                    </a>
+                  );
+                }
+                return (
+                  <a href={href} rel="noopener noreferrer" target="_blank">
+                    {children}
+                  </a>
+                );
+              },
               img: () => null,
             }}
           >

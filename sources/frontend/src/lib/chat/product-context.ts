@@ -82,6 +82,7 @@ function mapProduct(p: Record<string, unknown>): ChatProduct {
   return {
     id: String(p.id ?? ''),
     name: String(p.name ?? ''),
+    slug: str(p.slug),
     price: Number(p.price ?? 0),
     originalPrice: p.originalPrice != null ? Number(p.originalPrice) : null,
     discount: p.discount != null ? Number(p.discount) : null,
@@ -117,6 +118,7 @@ export function buildContextXml(products: ChatProduct[]): string {
       const attrs = [
         `id="${escapeXml(p.id)}"`,
         `name="${escapeXml(p.name)}"`,
+        `slug="${escapeXml(p.slug ?? '')}"`,
         `price="${p.price}"`,
       ];
       if (p.originalPrice != null && p.originalPrice > p.price) {
