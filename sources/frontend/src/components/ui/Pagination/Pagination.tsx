@@ -26,38 +26,47 @@ interface PaginationProps {
   alwaysShow?: boolean;
 }
 
+/** Số trang lân cận hiển thị mỗi bên trang hiện tại (sliding window). */
+const SIBLINGS = 2;
+
 /**
  * Sinh danh sách item hiển thị: số trang (1-based) hoặc 'gap' cho dấu "…".
  *
- * Luôn giữ 2 trang ĐẦU (1, 2) và 2 trang CUỐI (total-1, total). Khi trang hiện
- * tại nằm ngoài vùng đầu/cuối, chèn nó vào giữa kèm dấu "…" hai bên — bấm
- * next/prev thì số ở giữa trượt theo. Ví dụ total=10:
- *   current 1-3 → "1 2 3 … 9 10"   (gần đầu, current đã nằm trong 2 đầu)
- *   current 6   → "1 2 … 6 … 9 10" (giữa)
- *   current 8-10→ "1 2 … 8 9 10"   (gần cuối)
+ * Sliding window: hiển thị trang hiện tại ± {@link SIBLINGS} trang lân cận, cùng
+ * trang ĐẦU (1) và trang CUỐI (total). Chỉ 1 dấu "…" mỗi bên khi có cách quãng.
+ * Khác cách cũ (kẹp current giữa 2 ellipsis) — giờ thấy rõ các trang liền kề để
+ * nhảy nhanh. Ví dụ total=15:
+ *   current 2  → "1 2 3 4 5 … 15"        (sát đầu, không gap trái)
+ *   current 6  → "1 … 4 5 6 7 8 … 15"    (giữa, gap 2 bên)
+ *   current 14 → "1 … 11 12 13 14 15"    (sát cuối, không gap phải)
  */
 function buildPages(current1: number, total: number): (number | 'gap')[] {
-  // Ít trang (≤6) → hiện hết, không cần "…".
-  if (total <= 6) {
-    return Array.from({ length: total }, (_, i) => i + 1);
+  // Tập trang luôn hiện: 1, total, và current ± SIBLINGS.
+  const left = Math.max(1, current1 - SIBLINGS);
+  const right = Math.min(total, current1 + SIBLINGS);
+
+  const pages: (number | 'gap')[] = [];
+
+  // Trang 1 + (gap HOẶC trang 2) ở bên trái cửa sổ.
+  if (left > 1) {
+    pages.push(1);
+    // left=2 → window đã bắt đầu từ 2, không cần chèn gì (trang 1 liền window).
+    // left=3 → trang 2 bị bỏ → hiện luôn "2" cho gọn (tránh "1 … 3").
+    // left>3 → có khoảng cách thật → "…".
+    if (left === 3) pages.push(2);
+    else if (left > 3) pages.push('gap');
   }
 
-  const pages: (number | 'gap')[] = [1, 2];
+  // Cửa sổ quanh current.
+  for (let p = left; p <= right; p++) pages.push(p);
 
-  // current nằm sát đầu (≤4) → nối liền tới current, "…", 2 cuối.
-  if (current1 <= 4) {
-    for (let p = 3; p <= Math.max(3, current1); p++) pages.push(p);
-    pages.push('gap');
-  } else if (current1 >= total - 3) {
-    // current sát cuối → "…", các trang từ current tới sát 2 cuối.
-    pages.push('gap');
-    for (let p = Math.min(total - 2, current1); p <= total - 2; p++) pages.push(p);
-  } else {
-    // current ở giữa → "1 2 … [current] … (total-1) total".
-    pages.push('gap', current1, 'gap');
+  // (gap HOẶC trang total-1) + trang cuối ở bên phải cửa sổ.
+  if (right < total) {
+    if (right === total - 2) pages.push(total - 1);
+    else if (right < total - 2) pages.push('gap');
+    pages.push(total);
   }
 
-  pages.push(total - 1, total);
   return pages;
 }
 
@@ -72,50 +81,56 @@ export default function Pagination({ page, totalPages, onPageChange, alwaysShow 
 
   return (
     <nav className={styles.pagination} aria-label="Phân trang">
-      <button
-        className={styles.navBtn}
-        onClick={() => onPageChange(page - 1)}
-        disabled={page <= 0}
-        aria-label="Trang trước"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <polyline points="15 18 9 12 15 6" />
-        </svg>
-        <span className={styles.navLabel}>Trước</span>
-      </button>
+      <div className={styles.controls}>
+        <button
+          className={styles.navBtn}
+          onClick={() => onPageChange(page - 1)}
+          disabled={page <= 0}
+          aria-label="Trang trước"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          <span className={styles.navLabel}>Trước</span>
+        </button>
 
-      <ul className={styles.pageList}>
-        {items.map((item, idx) =>
-          item === 'gap' ? (
-            <li key={`gap-${idx}`} className={styles.gap} aria-hidden="true">
-              …
-            </li>
-          ) : (
-            <li key={item}>
-              <button
-                className={`${styles.pageBtn} ${item === current1 ? styles.pageBtnActive : ''}`}
-                onClick={() => onPageChange(item - 1)}
-                aria-label={`Trang ${item}`}
-                aria-current={item === current1 ? 'page' : undefined}
-              >
-                {item}
-              </button>
-            </li>
-          )
-        )}
-      </ul>
+        <ul className={styles.pageList}>
+          {items.map((item, idx) =>
+            item === 'gap' ? (
+              <li key={`gap-${idx}`} className={styles.gap} aria-hidden="true">
+                …
+              </li>
+            ) : (
+              <li key={item}>
+                <button
+                  className={`${styles.pageBtn} ${item === current1 ? styles.pageBtnActive : ''}`}
+                  onClick={() => onPageChange(item - 1)}
+                  aria-label={`Trang ${item}`}
+                  aria-current={item === current1 ? 'page' : undefined}
+                >
+                  {item}
+                </button>
+              </li>
+            )
+          )}
+        </ul>
 
-      <button
-        className={styles.navBtn}
-        onClick={() => onPageChange(page + 1)}
-        disabled={page >= safeTotal - 1}
-        aria-label="Trang sau"
-      >
-        <span className={styles.navLabel}>Sau</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
-      </button>
+        <button
+          className={styles.navBtn}
+          onClick={() => onPageChange(page + 1)}
+          disabled={page >= safeTotal - 1}
+          aria-label="Trang sau"
+        >
+          <span className={styles.navLabel}>Sau</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
+      </div>
+
+      <p className={styles.info}>
+        Trang {current1} / {safeTotal}
+      </p>
     </nav>
   );
 }
