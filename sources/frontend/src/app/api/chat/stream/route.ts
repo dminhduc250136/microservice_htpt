@@ -17,7 +17,9 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const MAX_INPUT_LEN = 2000; // D-25
-const MAX_TOKENS = 1024; // D-25
+// Tăng từ 1024 → 2048: tư vấn so sánh nhiều sản phẩm + nêu thông số kỹ thuật cần
+// nhiều token hơn, tránh bị cắt lời giữa chừng.
+const MAX_TOKENS = 2048;
 
 interface ChatStreamBody {
   sessionId?: number | null;
