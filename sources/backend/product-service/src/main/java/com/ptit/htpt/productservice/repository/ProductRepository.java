@@ -39,9 +39,12 @@ public interface ProductRepository extends JpaRepository<ProductEntity, String> 
   /**
    * Search theo nhiều TỪ KHÓA tách bởi khoảng trắng (đã trim + lowercase ở service).
    *
-   * <p>Mỗi token (t0..t4, tối đa 5; null = bỏ qua) khớp chuỗi con trong tên theo OR
-   * → CHỈ cần MỘT token khớp là SP được lấy. Nhờ OR, gõ sai 1 từ vẫn ra kết quả:
-   * "sam sunf" → "sam" khớp "Samsung", "sunf" không khớp gì → vẫn ra Samsung.
+   * <p>Mỗi token (t0..t4, tối đa 5; CHUỖI RỖNG "" = bỏ qua) khớp chuỗi con trong tên
+   * theo OR → CHỈ cần MỘT token khớp là SP được lấy. Nhờ OR, gõ sai 1 từ vẫn ra kết
+   * quả: "sam sunf" → "sam" khớp "Samsung", "sunf" không khớp gì → vẫn ra Samsung.
+   *
+   * <p>Token thiếu truyền "" (KHÔNG truyền null) để PostgreSQL suy được kiểu text cho
+   * bind param — null không cast làm PG hiểu nhầm bytea → "operator text ~~ bytea".
    *
    * <p>ORDER BY điểm relevance (rank 0 = tốt nhất):
    * <ol>
@@ -56,11 +59,11 @@ public interface ProductRepository extends JpaRepository<ProductEntity, String> 
    */
   @Query("SELECT p FROM ProductEntity p WHERE "
       + "("
-      + "  (:t0 IS NOT NULL AND LOWER(p.name) LIKE CONCAT('%', :t0, '%')) "
-      + "  OR (:t1 IS NOT NULL AND LOWER(p.name) LIKE CONCAT('%', :t1, '%')) "
-      + "  OR (:t2 IS NOT NULL AND LOWER(p.name) LIKE CONCAT('%', :t2, '%')) "
-      + "  OR (:t3 IS NOT NULL AND LOWER(p.name) LIKE CONCAT('%', :t3, '%')) "
-      + "  OR (:t4 IS NOT NULL AND LOWER(p.name) LIKE CONCAT('%', :t4, '%')) "
+      + "  (:t0 <> '' AND LOWER(p.name) LIKE CONCAT('%', :t0, '%')) "
+      + "  OR (:t1 <> '' AND LOWER(p.name) LIKE CONCAT('%', :t1, '%')) "
+      + "  OR (:t2 <> '' AND LOWER(p.name) LIKE CONCAT('%', :t2, '%')) "
+      + "  OR (:t3 <> '' AND LOWER(p.name) LIKE CONCAT('%', :t3, '%')) "
+      + "  OR (:t4 <> '' AND LOWER(p.name) LIKE CONCAT('%', :t4, '%')) "
       + ") "
       + "AND (:brands IS NULL OR p.brand IN :brands) "
       + "AND (cast(:priceMin as big_decimal) IS NULL OR p.price >= :priceMin) "
@@ -70,11 +73,11 @@ public interface ProductRepository extends JpaRepository<ProductEntity, String> 
       + "     WHEN LOWER(p.name) LIKE CONCAT(:t0, '%') THEN 1 "
       + "     ELSE 2 END ASC, "
       + "("
-      + "  (CASE WHEN :t0 IS NOT NULL AND LOWER(p.name) LIKE CONCAT('%', :t0, '%') THEN 1 ELSE 0 END) "
-      + "+ (CASE WHEN :t1 IS NOT NULL AND LOWER(p.name) LIKE CONCAT('%', :t1, '%') THEN 1 ELSE 0 END) "
-      + "+ (CASE WHEN :t2 IS NOT NULL AND LOWER(p.name) LIKE CONCAT('%', :t2, '%') THEN 1 ELSE 0 END) "
-      + "+ (CASE WHEN :t3 IS NOT NULL AND LOWER(p.name) LIKE CONCAT('%', :t3, '%') THEN 1 ELSE 0 END) "
-      + "+ (CASE WHEN :t4 IS NOT NULL AND LOWER(p.name) LIKE CONCAT('%', :t4, '%') THEN 1 ELSE 0 END) "
+      + "  (CASE WHEN :t0 <> '' AND LOWER(p.name) LIKE CONCAT('%', :t0, '%') THEN 1 ELSE 0 END) "
+      + "+ (CASE WHEN :t1 <> '' AND LOWER(p.name) LIKE CONCAT('%', :t1, '%') THEN 1 ELSE 0 END) "
+      + "+ (CASE WHEN :t2 <> '' AND LOWER(p.name) LIKE CONCAT('%', :t2, '%') THEN 1 ELSE 0 END) "
+      + "+ (CASE WHEN :t3 <> '' AND LOWER(p.name) LIKE CONCAT('%', :t3, '%') THEN 1 ELSE 0 END) "
+      + "+ (CASE WHEN :t4 <> '' AND LOWER(p.name) LIKE CONCAT('%', :t4, '%') THEN 1 ELSE 0 END) "
       + ") DESC, "
       + "LENGTH(p.name) ASC, p.soldCount DESC")
   Page<ProductEntity> searchByTokens(

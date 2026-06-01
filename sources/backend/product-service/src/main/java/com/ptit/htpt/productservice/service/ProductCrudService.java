@@ -280,9 +280,13 @@ public class ProductCrudService {
     return tokens;
   }
 
-  /** Token thứ i hoặc null nếu thiếu (để bind :t0..:t4, null = bỏ qua điều kiện đó). */
+  /**
+   * Token thứ i, hoặc chuỗi RỖNG "" nếu thiếu (KHÔNG null — để PostgreSQL suy được
+   * kiểu text cho bind param; null không cast gây lỗi "operator text ~~ bytea").
+   * Query dùng {@code :tN <> ''} để bỏ qua token rỗng.
+   */
   private static String tokenAt(List<String> tokens, int i) {
-    return i < tokens.size() ? tokens.get(i) : null;
+    return i < tokens.size() ? tokens.get(i) : "";
   }
 
   private static Sort parseSort(String sort) {
