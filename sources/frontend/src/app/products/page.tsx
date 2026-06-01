@@ -30,7 +30,10 @@ function ProductsPageContent() {
   const page = getNum('page', 0, { min: 0 });
 
   // Setters: đổi filter → reset page=0; clear keyword/brand → xoá hẳn key khỏi URL.
-  const setSearchQuery = (v: string) => patch({ keyword: v, page: 0 });
+  const setSearchQuery = useCallback(
+    (v: string) => patch({ keyword: v || undefined, page: 0 }),
+    [patch],
+  );
   const setCategorySlug = (slug: string | null) => patch({ category: slug, page: 0 });
   const setSortBy = (s: SortOption) => patch({ sort: s === 'newest' ? undefined : s, page: 0 });
   const setPage = (p: number) => patch({ page: p });
@@ -48,6 +51,19 @@ function ProductsPageContent() {
   const PAGE_SIZE = 9;
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
+
+  // Ô search trong filter: state local cho phép gõ phản hồi tức thì, debounce 400ms
+  // mới ghi vào URL (→ gọi API) — tránh gọi API mỗi ký tự. Đồng bộ ngược khi keyword
+  // trên URL đổi từ nguồn khác (header search, nút "Xóa tất cả").
+  const [searchInput, setSearchInput] = useState(searchQuery);
+  useEffect(() => {
+    setSearchInput(searchQuery);
+  }, [searchQuery]);
+  useEffect(() => {
+    if (searchInput === searchQuery) return; // không đổi → khỏi debounce/ghi URL
+    const t = setTimeout(() => setSearchQuery(searchInput.trim()), 400);
+    return () => clearTimeout(t);
+  }, [searchInput, searchQuery, setSearchQuery]);
 
   // Slug ↔ id mapping. BE listProducts nhận categoryId (UUID), URL giữ slug user-friendly.
   const selectedCategoryId = useMemo(() => {
@@ -196,8 +212,8 @@ function ProductsPageContent() {
             <div className={styles.filterGroup}>
               <Input
                 placeholder="Tìm kiếm sản phẩm..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 fullWidth
                 icon={
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
