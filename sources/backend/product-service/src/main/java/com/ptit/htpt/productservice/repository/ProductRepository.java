@@ -26,11 +26,13 @@ public interface ProductRepository extends JpaRepository<ProductEntity, String> 
    */
   @Query("SELECT p FROM ProductEntity p WHERE "
       + "(cast(:keyword as string) IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', cast(:keyword as string), '%'))) "
+      + "AND (cast(:categoryId as string) IS NULL OR p.categoryId = :categoryId) "
       + "AND (:brands IS NULL OR p.brand IN :brands) "
       + "AND (cast(:priceMin as big_decimal) IS NULL OR p.price >= :priceMin) "
       + "AND (cast(:priceMax as big_decimal) IS NULL OR p.price <= :priceMax)")
   Page<ProductEntity> findWithFilters(
       @Param("keyword") String keyword,
+      @Param("categoryId") String categoryId,
       @Param("brands") List<String> brands,
       @Param("priceMin") BigDecimal priceMin,
       @Param("priceMax") BigDecimal priceMax,
@@ -65,6 +67,7 @@ public interface ProductRepository extends JpaRepository<ProductEntity, String> 
       + "  OR (:t3 <> '' AND LOWER(p.name) LIKE CONCAT('%', :t3, '%')) "
       + "  OR (:t4 <> '' AND LOWER(p.name) LIKE CONCAT('%', :t4, '%')) "
       + ") "
+      + "AND (cast(:categoryId as string) IS NULL OR p.categoryId = :categoryId) "
       + "AND (:brands IS NULL OR p.brand IN :brands) "
       + "AND (cast(:priceMin as big_decimal) IS NULL OR p.price >= :priceMin) "
       + "AND (cast(:priceMax as big_decimal) IS NULL OR p.price <= :priceMax) "
@@ -87,6 +90,7 @@ public interface ProductRepository extends JpaRepository<ProductEntity, String> 
       @Param("t3") String t3,
       @Param("t4") String t4,
       @Param("phrase") String phrase,
+      @Param("categoryId") String categoryId,
       @Param("brands") List<String> brands,
       @Param("priceMin") BigDecimal priceMin,
       @Param("priceMax") BigDecimal priceMax,

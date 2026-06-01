@@ -209,4 +209,48 @@ class ProductKeywordSearchTest {
     assertThat(body).isNotNull();
     assertThat(body).contains("Apple MacBook Pro");
   }
+
+  // ===== Lọc theo danh mục (categoryId) =====
+
+  @Test
+  void listProducts_withCategoryId_returnsOnlyThatCategory() {
+    // Seed thêm 1 SP ở category khác để chứng minh filter thu hẹp đúng.
+    CategoryEntity phone = CategoryEntity.create("Điện thoại", "dien-thoai");
+    categoryRepository.saveAndFlush(phone);
+    productRepository.saveAndFlush(
+        ProductEntity.create("iPhone 15", "iphone-15",
+            phone.id(), new BigDecimal("20000000"), "ACTIVE",
+            "Apple", null, null, new BigDecimal("22000000")));
+
+    String laptopCatId = categoryRepository.findAll().stream()
+        .filter(c -> "laptop".equals(c.slug())).findFirst().orElseThrow().id();
+
+    ResponseEntity<String> response = restTemplate.getForEntity(
+        "http://localhost:" + port + "/products?categoryId=" + laptopCatId, String.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    String body = response.getBody();
+    assertThat(body).isNotNull();
+    // Chỉ SP thuộc category Laptop, KHÔNG có iPhone (category Điện thoại).
+    assertThat(body).contains("Dell Laptop XPS 13");
+    assertThat(body).contains("Apple MacBook Pro");
+    assertThat(body).doesNotContain("iPhone 15");
+  }
+
+  @Test
+  void listProducts_withCategoryId_andKeyword_combinesBoth() {
+    // category Laptop + keyword "macbook" → chỉ MacBook (laptop), không Dell/HP.
+    String laptopCatId = categoryRepository.findAll().stream()
+        .filter(c -> "laptop".equals(c.slug())).findFirst().orElseThrow().id();
+
+    ResponseEntity<String> response = restTemplate.getForEntity(
+        "http://localhost:" + port + "/products?categoryId=" + laptopCatId + "&keyword=macbook",
+        String.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    String body = response.getBody();
+    assertThat(body).isNotNull();
+    assertThat(body).contains("Apple MacBook Pro");
+    assertThat(body).doesNotContain("Dell Laptop XPS 13");
+  }
 }

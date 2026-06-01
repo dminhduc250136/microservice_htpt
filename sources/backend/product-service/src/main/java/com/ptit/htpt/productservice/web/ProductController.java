@@ -36,12 +36,13 @@ public class ProductController {
       @RequestParam(defaultValue = "20") int size,
       @RequestParam(defaultValue = "updatedAt,desc") String sort,
       @RequestParam(required = false) String keyword,                  // D-02
+      @RequestParam(required = false) String categoryId,                // lọc theo danh mục
       @RequestParam(required = false) List<String> brands,              // Phase 14 D-07/D-08: repeatable param
       @RequestParam(required = false) BigDecimal priceMin,              // Phase 14 D-08
       @RequestParam(required = false) BigDecimal priceMax               // Phase 14 D-08
   ) {
     return ApiResponse.of(200, "Products listed",
-        productCrudService.listProducts(page, size, sort, false, keyword, brands, priceMin, priceMax));
+        productCrudService.listProducts(page, size, sort, false, keyword, categoryId, brands, priceMin, priceMax));
   }
 
   @GetMapping("/{id}")

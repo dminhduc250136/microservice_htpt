@@ -50,12 +50,12 @@ public class ProductCrudService {
   }
 
   public Map<String, Object> listProducts(int page, int size, String sort, boolean includeDeleted) {
-    return listProducts(page, size, sort, includeDeleted, null, null, null, null);
+    return listProducts(page, size, sort, includeDeleted, null, null, null, null, null);
   }
 
   public Map<String, Object> listProducts(int page, int size, String sort,
                                           boolean includeDeleted, String keyword) {
-    return listProducts(page, size, sort, includeDeleted, keyword, null, null, null);
+    return listProducts(page, size, sort, includeDeleted, keyword, null, null, null, null);
   }
 
   /**
@@ -64,13 +64,15 @@ public class ProductCrudService {
    * <p>{@code includeDeleted} giữ trong chữ ký để KHÔNG break callers cũ — không còn ý nghĩa
    * vì @SQLRestriction filter ở SQL layer (đồng bộ comment cũ Phase 5/8).
    *
-   * <p>Normalize: empty/blank keyword → null, empty brands list → null để JPQL `IS NULL` clause skip.
+   * <p>Normalize: empty/blank keyword/categoryId → null, empty brands list → null để
+   * JPQL `IS NULL` clause skip điều kiện tương ứng.
    */
   public Map<String, Object> listProducts(int page, int size, String sort,
                                           boolean includeDeleted, String keyword,
-                                          List<String> brands, BigDecimal priceMin,
-                                          BigDecimal priceMax) {
+                                          String categoryId, List<String> brands,
+                                          BigDecimal priceMin, BigDecimal priceMax) {
     String normalizedKeyword = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
+    String normalizedCategoryId = (categoryId == null || categoryId.isBlank()) ? null : categoryId.trim();
     List<String> normalizedBrands = (brands == null || brands.isEmpty()) ? null : brands;
 
     int safePage = Math.max(page, 0);
@@ -90,12 +92,12 @@ public class ProductCrudService {
       resultPage = productRepo.searchByTokens(
           tokenAt(tokens, 0), tokenAt(tokens, 1), tokenAt(tokens, 2),
           tokenAt(tokens, 3), tokenAt(tokens, 4),
-          phrase, normalizedBrands, priceMin, priceMax, pageable);
+          phrase, normalizedCategoryId, normalizedBrands, priceMin, priceMax, pageable);
     } else {
-      // Không keyword → giữ filter brand/price + tôn trọng sort do user chọn.
+      // Không keyword → giữ filter category/brand/price + tôn trọng sort do user chọn.
       Pageable pageable = PageRequest.of(safePage, safeSize, parseSort(sort));
       resultPage = productRepo.findWithFilters(
-          null, normalizedBrands, priceMin, priceMax, pageable);
+          null, normalizedCategoryId, normalizedBrands, priceMin, priceMax, pageable);
     }
 
     Map<String, Object> response = new LinkedHashMap<>();
