@@ -1,0 +1,110 @@
+.panel {
+  border: 1px solid #e3e8f0;
+  background: linear-gradient(180deg, #f7f9ff 0%, #fdfdff 100%);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 20px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #4f46e5;
+  background: #eef0ff;
+  border: 1px solid #dcdcff;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.basedOn {
+  font-size: 0.78rem;
+  color: #8a93a5;
+}
+
+.oneLine {
+  font-size: 0.95rem;
+  color: #2a3242;
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+
+.cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 560px) {
+  .cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+.col {
+  min-width: 0;
+}
+
+.colTitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #3a4252;
+  margin: 0 0 6px;
+}
+
+.list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.list li {
+  font-size: 0.88rem;
+  color: #4a5266;
+  line-height: 1.45;
+}
+
+.disclaimer {
+  margin: 12px 0 0;
+  font-size: 0.74rem;
+  color: #a0a8b8;
+  font-style: italic;
+}
+
+.skeletonLine,
+.skeletonLineShort {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #eef1f6 25%, #e3e8f0 50%, #eef1f6 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.3s ease-in-out infinite;
+  margin-top: 8px;
+}
+
+.skeletonLine {
+  width: 100%;
+}
+
+.skeletonLineShort {
+  width: 60%;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

@@ -17,6 +17,7 @@ import {
 import type { Review, SortKey } from '@/types';
 import ReviewForm from './ReviewForm';
 import ReviewList from './ReviewList';
+import ReviewSummary from './ReviewSummary';
 import styles from './ReviewSection.module.css';
 
 interface ReviewSectionProps {
@@ -156,6 +157,10 @@ export default function ReviewSection({ productId, slug }: ReviewSectionProps) {
 
   return (
     <section className={styles.section} aria-label="Đánh giá sản phẩm">
+      {/* Đợt 2 #3: panel tóm tắt review bằng AI — tự ẩn nếu chưa đủ review/lỗi.
+          Key theo totalElements để review đổi thì refetch tóm tắt. */}
+      <ReviewSummary productId={productId} reviewCount={meta?.totalElements ?? 0} />
+
       {!user && (
         <p className={styles.hint}>
           Đăng nhập để đánh giá sản phẩm.{' '}
