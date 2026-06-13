@@ -3,6 +3,7 @@ package com.ptit.htpt.productservice.web;
 import com.ptit.htpt.productservice.api.ApiResponse;
 import com.ptit.htpt.productservice.service.ProductCrudService;
 import com.ptit.htpt.productservice.service.ProductCrudService.CategoryUpsertRequest;
+import com.ptit.htpt.productservice.service.ProductCrudService.EmbeddingRequest;
 import com.ptit.htpt.productservice.service.ProductCrudService.ProductStatusRequest;
 import com.ptit.htpt.productservice.service.ProductCrudService.ProductUpsertRequest;
 import jakarta.validation.Valid;
@@ -53,6 +54,22 @@ public class AdminProductController {
   @PatchMapping("/{id}/status")
   public ApiResponse<Object> updateStatus(@PathVariable String id, @Valid @RequestBody ProductStatusRequest request) {
     return ApiResponse.of(200, "Admin product status updated", productCrudService.updateProductStatus(id, request));
+  }
+
+  /**
+   * Backfill embedding (vector search RAG — Đợt 1 AI). ADMIN only (gateway enforce
+   * /api/*/admin/**). Frontend embed text SP qua Gemini rồi PATCH vector 768 chiều.
+   */
+  @PatchMapping("/{id}/embedding")
+  public ApiResponse<Object> setEmbedding(@PathVariable String id, @RequestBody EmbeddingRequest request) {
+    int updated = productCrudService.updateEmbedding(id, request.embedding());
+    return ApiResponse.of(200, "Embedding updated", Map.of("id", id, "updated", updated));
+  }
+
+  /** Đếm SP đã có embedding (verify backfill). */
+  @GetMapping("/embedding/count")
+  public ApiResponse<Object> embeddingCount() {
+    return ApiResponse.of(200, "Embedding count", Map.of("count", productCrudService.countEmbeddings()));
   }
 
   @DeleteMapping("/{id}")

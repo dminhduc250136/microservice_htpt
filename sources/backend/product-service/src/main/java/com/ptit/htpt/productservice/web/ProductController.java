@@ -5,6 +5,7 @@ import com.ptit.htpt.productservice.service.ProductCrudService;
 import com.ptit.htpt.productservice.service.ProductCrudService.CategoryUpsertRequest;
 import com.ptit.htpt.productservice.service.ProductCrudService.ProductResponse;
 import com.ptit.htpt.productservice.service.ProductCrudService.ProductUpsertRequest;
+import com.ptit.htpt.productservice.service.ProductCrudService.VectorSearchRequest;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.util.List;
@@ -43,6 +44,18 @@ public class ProductController {
   ) {
     return ApiResponse.of(200, "Products listed",
         productCrudService.listProducts(page, size, sort, false, keyword, categoryId, brands, priceMin, priceMax));
+  }
+
+  /**
+   * Vector search (semantic RAG) cho chatbot — Đợt 1 AI. Public (như GET list).
+   * Frontend embed câu hỏi (Gemini text-embedding-004, 768 chiều) rồi POST vào đây.
+   * Response cùng shape với listProducts để FE tái dùng mapProduct.
+   */
+  @PostMapping("/vector-search")
+  public ApiResponse<Map<String, Object>> vectorSearch(@RequestBody VectorSearchRequest request) {
+    int topK = request.topK() != null ? request.topK() : 8;
+    return ApiResponse.of(200, "Vector search results",
+        productCrudService.vectorSearch(request.embedding(), topK));
   }
 
   @GetMapping("/{id}")

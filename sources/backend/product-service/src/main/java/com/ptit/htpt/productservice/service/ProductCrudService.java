@@ -111,6 +111,80 @@ public class ProductCrudService {
     return response;
   }
 
+  /** Số chiều embedding (Gemini text-embedding-004 = 768; khớp cột vector(768)). */
+  private static final int EMBEDDING_DIM = 768;
+
+  /**
+   * Vector search (semantic RAG) — Đợt 1 AI. Nhận embedding câu hỏi (768 chiều) đã
+   * embed ở frontend, trả top-K sản phẩm gần nghĩa nhất theo cosine distance.
+   *
+   * <p>Response CÙNG SHAPE với {@link #listProducts} (content[]/totalElements/...) để
+   * frontend tái dùng mapProduct. searchByEmbedding trả id theo thứ tự gần→xa; ta
+   * load entity theo id rồi GIỮ NGUYÊN thứ tự đó (findAllById không đảm bảo order).
+   */
+  public Map<String, Object> vectorSearch(List<Float> embedding, int topK) {
+    int safeTopK = topK <= 0 ? 8 : Math.min(topK, 50);
+    List<ProductEntity> ordered = Collections.emptyList();
+
+    if (embedding != null && embedding.size() == EMBEDDING_DIM) {
+      String vec = toVectorLiteral(embedding);
+      List<String> ids = productRepo.searchByEmbedding(vec, safeTopK);
+      if (!ids.isEmpty()) {
+        Map<String, ProductEntity> byId = new LinkedHashMap<>();
+        productRepo.findAllById(ids).forEach(p -> byId.put(p.id(), p));
+        // Giữ thứ tự gần→xa từ DB; bỏ id không load được (vd vừa bị xóa).
+        ordered = ids.stream().map(byId::get).filter(p -> p != null).toList();
+      }
+    }
+
+    Map<String, Object> response = new LinkedHashMap<>();
+    response.put("content", ordered.stream().map(this::toResponse).toList());
+    response.put("totalElements", (long) ordered.size());
+    response.put("totalPages", 1);
+    response.put("currentPage", 0);
+    response.put("pageSize", safeTopK);
+    response.put("isFirst", true);
+    response.put("isLast", true);
+    return response;
+  }
+
+  /**
+   * Lưu embedding cho 1 SP (backfill). Validate đúng {@link #EMBEDDING_DIM} chiều
+   * trước khi ghi để khỏi nhét vector sai kích thước vào cột vector(768).
+   * Trả về số dòng cập nhật (0 nếu id không tồn tại).
+   */
+  public int updateEmbedding(String id, List<Float> embedding) {
+    if (embedding == null || embedding.size() != EMBEDDING_DIM) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+          "embedding phải có đúng " + EMBEDDING_DIM + " phần tử");
+    }
+    // Đảm bảo SP tồn tại (404 rõ ràng thay vì update 0 dòng âm thầm).
+    getProduct(id, true);
+    return productRepo.updateEmbedding(id, toVectorLiteral(embedding));
+  }
+
+  /** Đếm SP đã có embedding (verify backfill). */
+  public long countEmbeddings() {
+    return productRepo.countWithEmbedding();
+  }
+
+  /**
+   * Format List&lt;Float&gt; → pgvector literal "[0.1,0.2,...]". {@code Float.toString}
+   * luôn dùng "." làm dấu thập phân (không phụ thuộc Locale) → an toàn cú pháp vector.
+   */
+  private static String toVectorLiteral(List<Float> embedding) {
+    StringBuilder sb = new StringBuilder(embedding.size() * 12 + 2);
+    sb.append('[');
+    for (int i = 0; i < embedding.size(); i++) {
+      if (i > 0) {
+        sb.append(',');
+      }
+      sb.append(embedding.get(i).floatValue());
+    }
+    sb.append(']');
+    return sb.toString();
+  }
+
   public ProductEntity getProduct(String id, boolean includeDeleted) {
     ProductEntity product = productRepo.findById(id)
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
@@ -349,6 +423,12 @@ public class ProductCrudService {
   ) {}
 
   public record ProductStatusRequest(@NotBlank String status) {}
+
+  /** Vector search request: embedding câu hỏi (768 chiều) + topK (mặc định 8). */
+  public record VectorSearchRequest(List<Float> embedding, Integer topK) {}
+
+  /** Backfill embedding cho 1 SP. */
+  public record EmbeddingRequest(List<Float> embedding) {}
 
   /** Phase 5: schema mới cho category — drop {@code parentId, status}, thêm {@code slug}. */
   public record CategoryUpsertRequest(@NotBlank String name, @NotBlank String slug) {}
