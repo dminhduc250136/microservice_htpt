@@ -39,8 +39,17 @@ public class OrderChartsService {
 
   @Transactional(readOnly = true)
   public List<RevenuePoint> revenueByDay(Range range) {
-    Instant from = range.toFromInstant();
-    List<Object[]> rows = orderRepo.aggregateRevenueByDay(from);
+    return revenueByDay(range.toFromInstant(), null);
+  }
+
+  /**
+   * Custom date range (Đợt 4): doanh thu theo ngày trong [from, to]. from/to nullable
+   * (null = không giới hạn đầu/cuối tương ứng). Gap-fill từ start → end (end = to nếu
+   * có, else hôm nay).
+   */
+  @Transactional(readOnly = true)
+  public List<RevenuePoint> revenueByDay(Instant from, Instant to) {
+    List<Object[]> rows = orderRepo.aggregateRevenueByDay(from, to);
 
     Map<LocalDate, BigDecimal> raw = new HashMap<>();
     for (Object[] r : rows) {
@@ -53,7 +62,9 @@ public class OrderChartsService {
     LocalDate start = from != null
         ? from.atZone(ZoneId.systemDefault()).toLocalDate()
         : raw.keySet().stream().min(Comparator.naturalOrder()).orElse(LocalDate.now());
-    LocalDate end = LocalDate.now();
+    LocalDate end = to != null
+        ? to.atZone(ZoneId.systemDefault()).toLocalDate()
+        : LocalDate.now();
 
     List<RevenuePoint> points = new ArrayList<>();
     for (LocalDate d = start; !d.isAfter(end); d = d.plusDays(1)) {
@@ -64,8 +75,13 @@ public class OrderChartsService {
 
   @Transactional(readOnly = true)
   public List<TopProductPoint> topProducts(Range range, String authHeader) {
-    Instant from = range.toFromInstant();
-    List<Object[]> rows = orderRepo.aggregateTopProducts(from, PageRequest.of(0, 10));
+    return topProducts(range.toFromInstant(), null, authHeader);
+  }
+
+  /** Custom date range (Đợt 4): top-products trong [from, to]. */
+  @Transactional(readOnly = true)
+  public List<TopProductPoint> topProducts(Instant from, Instant to, String authHeader) {
+    List<Object[]> rows = orderRepo.aggregateTopProducts(from, to, PageRequest.of(0, 10));
     List<String> ids = rows.stream().map(r -> (String) r[0]).toList();
 
     Map<String, ProductBatchClient.ProductSummary> enriched =

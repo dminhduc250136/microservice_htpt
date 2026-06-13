@@ -21,7 +21,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
  * Phase 19 / Plan 19-02 Task 1 — Testcontainers Postgres tests cho
- * {@link UserRepository#aggregateSignupsByDay(Instant)}.
+ * {@link UserRepository#aggregateSignupsByDay(Instant, Instant)}.
  *
  * <p>Pattern mirror {@code UserRepositoryJpaTest}: Flyway apply V1 schema, reflection set
  * createdAt vì {@code UserEntity.create()} hardcode {@code Instant.now()}.
@@ -91,7 +91,7 @@ class UserRepositorySignupsIT {
     em.flush();
     em.clear();
 
-    List<Object[]> rows = userRepo.aggregateSignupsByDay(null);
+    List<Object[]> rows = userRepo.aggregateSignupsByDay(null, null);
     assertThat(rows).hasSize(3);
     // Sorted ASC by day (oldest first)
     java.sql.Date d0 = (java.sql.Date) rows.get(0)[0];
@@ -114,7 +114,7 @@ class UserRepositorySignupsIT {
     em.clear();
 
     Instant from = now.minus(7, ChronoUnit.DAYS);
-    List<Object[]> rows = userRepo.aggregateSignupsByDay(from);
+    List<Object[]> rows = userRepo.aggregateSignupsByDay(from, null);
     assertThat(rows).hasSize(1);
     assertThat(((Number) rows.get(0)[1]).longValue()).isEqualTo(1L);
   }

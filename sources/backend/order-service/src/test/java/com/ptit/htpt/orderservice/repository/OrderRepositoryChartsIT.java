@@ -80,7 +80,7 @@ class OrderRepositoryChartsIT {
     // 1 PENDING order — phải bị loại
     repo.saveAndFlush(newOrder("PENDING", new BigDecimal("999.00"), now));
 
-    List<Object[]> rows = repo.aggregateRevenueByDay(null);
+    List<Object[]> rows = repo.aggregateRevenueByDay(null, null);
 
     assertThat(rows).hasSize(3);
     BigDecimal sum = rows.stream()
@@ -101,7 +101,7 @@ class OrderRepositoryChartsIT {
       repo.saveAndFlush(o);
     }
 
-    List<Object[]> rows = repo.aggregateTopProducts(null, PageRequest.of(0, 10));
+    List<Object[]> rows = repo.aggregateTopProducts(null, null, PageRequest.of(0, 10));
 
     assertThat(rows).hasSize(10);
     long firstQty = ((Number) rows.get(0)[1]).longValue();

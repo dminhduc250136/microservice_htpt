@@ -39,6 +39,21 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  flex-wrap: wrap;
+}
+/* Đợt 4: hàng 2 ô date khi chọn "Tùy chỉnh" */
+.customDateRow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+.customDateRow input[type='date'] {
+  padding: 7px var(--space-3);
+  border: 1px solid var(--outline);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--on-surface);
+  cursor: pointer;
 }
 .timeWindowRow label {
   font-weight: var(--weight-medium);

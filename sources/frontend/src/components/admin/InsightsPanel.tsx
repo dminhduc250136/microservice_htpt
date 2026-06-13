@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { getAccessToken } from '@/services/token';
 import styles from './InsightsPanel.module.css';
 
-type Range = '7d' | '30d' | '90d' | 'all';
+type Range = '7d' | '30d' | '90d' | 'all' | 'custom';
 
 interface Insights {
   forecast: { trend: string; summary: string; nextPeriodEstimate: string };
@@ -15,6 +15,9 @@ interface Insights {
 
 interface InsightsPanelProps {
   range: Range;
+  /** Đợt 4: custom date range (chỉ dùng khi range='custom'). */
+  from?: string;
+  to?: string;
 }
 
 const TREND_ICON: Record<string, string> = {
@@ -28,17 +31,31 @@ const TREND_ICON: Record<string, string> = {
  * AI phân tích doanh thu → dự báo + insight + khuyến nghị. Đồng bộ với dropdown
  * range của dashboard. Tự ẩn nếu thiếu data/lỗi (charts vẫn chạy bình thường).
  */
-export function InsightsPanel({ range }: InsightsPanelProps) {
+export function InsightsPanel({ range, from, to }: InsightsPanelProps) {
   const [data, setData] = useState<Insights | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Custom range chưa đủ ngày → chưa gọi (tránh phân tích rỗng).
+  const customIncomplete = range === 'custom' && !from && !to;
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     async function load() {
+      if (customIncomplete) {
+        if (!cancelled) {
+          setData(null);
+          setLoading(false);
+        }
+        return;
+      }
       try {
         const token = getAccessToken();
-        const res = await fetch(`/api/admin/insights?range=${range}`, {
+        const qs =
+          range === 'custom'
+            ? new URLSearchParams({ ...(from ? { from } : {}), ...(to ? { to } : {}) }).toString()
+            : `range=${range}`;
+        const res = await fetch(`/api/admin/insights?${qs}`, {
           headers: { Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           cache: 'no-store',
         });
@@ -54,7 +71,7 @@ export function InsightsPanel({ range }: InsightsPanelProps) {
     return () => {
       cancelled = true;
     };
-  }, [range]);
+  }, [range, from, to, customIncomplete]);
 
   if (loading) {
     return (
