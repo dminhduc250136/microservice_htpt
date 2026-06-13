@@ -136,6 +136,9 @@ export async function POST(req: Request): Promise<Response> {
           config: {
             // system prompt đặt ở systemInstruction (riêng, không nằm trong contents).
             systemInstruction: SYSTEM_PROMPT_VN,
+            // Tắt "thinking" (Gemini 2.5 bật mặc định) — chat tư vấn không cần suy luận
+            // sâu, tắt giúp phản hồi nhanh hơn + đỡ tốn token cho câu trả lời.
+            thinkingConfig: { thinkingBudget: 0 },
             maxOutputTokens: MAX_TOKENS,
             abortSignal: abortController.signal,
           },
