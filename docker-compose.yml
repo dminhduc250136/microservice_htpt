@@ -310,6 +310,8 @@ services:
       - api-gateway
       - postgres-chat
     environment:
+      # Chat tư vấn dùng Google Gemini (free tier). ANTHROPIC giữ cho admin suggest-reply.
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-key-minimum-32-characters-for-hs256-ok}
       DB_HOST: postgres-chat
