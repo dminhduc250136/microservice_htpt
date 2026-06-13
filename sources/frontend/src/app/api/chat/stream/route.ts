@@ -3,6 +3,7 @@ import { verifyJwtFromRequest } from '@/lib/chat/auth';
 import { checkRateLimit } from '@/lib/chat/rate-limit';
 import { ensureSchema } from '@/lib/chat/schema-init';
 import { searchProductsForContext, buildContextXml } from '@/lib/chat/product-context';
+import { classifyIntent } from '@/lib/chat/intent';
 import {
   createSession,
   loadHistory,
@@ -85,11 +86,15 @@ export async function POST(req: Request): Promise<Response> {
     return jsonError(500, 'DB_WRITE_FAILED', 'Không thể lưu tin nhắn');
   }
 
-  // 7) Load sliding window history (20 messages = ~10 turns), rồi product context
+  // 7) Load sliding window history (20 messages = ~10 turns), rồi product context.
+  //    Đợt 2 #2: phân loại ý định TRƯỚC — chỉ PRODUCT mới chạy vector search (tiết
+  //    kiệm token/latency cho câu xã giao/chính sách/hỏi đơn). Fallback intent=PRODUCT.
   const history = await loadHistory(sessionId);
-  const products = await searchProductsForContext(message);
+  const intent = await classifyIntent(message);
+  const products = intent === 'PRODUCT' ? await searchProductsForContext(message) : [];
   const ctxXml = buildContextXml(products);
   const userBlock =
+    `<intent>${intent}</intent>\n` +
     `<product_context>\n${ctxXml}\n</product_context>\n` +
     `<user_question>${escapeXml(message)}</user_question>`;
 
