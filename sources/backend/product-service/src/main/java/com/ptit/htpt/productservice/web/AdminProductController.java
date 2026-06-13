@@ -58,7 +58,7 @@ public class AdminProductController {
 
   /**
    * Backfill embedding (vector search RAG — Đợt 1 AI). ADMIN only (gateway enforce
-   * /api/*/admin/**). Frontend embed text SP qua Gemini rồi PATCH vector 768 chiều.
+   * admin path). Frontend embed text SP qua Gemini rồi PATCH vector 768 chiều.
    */
   @PatchMapping("/{id}/embedding")
   public ApiResponse<Object> setEmbedding(@PathVariable String id, @RequestBody EmbeddingRequest request) {

@@ -51,15 +51,15 @@
 ### Giai đoạn 3 — Frontend (PR-2)
 | # | Việc | Trạng thái | Ghi chú |
 |---|------|-----------|---------|
-| 3.1 | `lib/chat/gemini-embed.ts`: `embedText(text)` → vector 768d | ⬜ | Verify field SDK (.values vs .embedding) |
-| 3.2 | `product-context.ts`: vector search + **FALLBACK keyword** | ⬜ | Chat không chết nếu vector lỗi |
-| 3.3 | `npm run build` + lint sạch | ⬜ | |
+| 3.1 | `lib/chat/gemini-embed.ts`: `embedText(text)` → vector 768d | ✅ | SDK field = `embeddings[0].values`; +taskType QUERY/DOCUMENT, verify 768d |
+| 3.2 | `product-context.ts`: vector search + **FALLBACK keyword** | ✅ | vectorSearchForContext → fallback keywordSearchFallback |
+| 3.3 | `npm run build` + lint sạch | ✅ | tsc --noEmit OK, eslint OK |
 
 ### Giai đoạn 4 — Deploy + Backfill
 | # | Việc | Trạng thái | Ghi chú |
 |---|------|-----------|---------|
 | 4.1 | Merge + deploy PR-1 (hạ tầng) | ⬜ | Có fallback → không phá chat |
-| 4.2 | Script backfill embed 131 SP → PATCH lên DB | ⬜ | GEMINI key + admin token |
+| 4.2 | Script backfill embed 131 SP → PATCH lên DB | 🔄 | scripts/backfill-embeddings.mjs đã viết, chạy khi deploy |
 | 4.3 | Verify: `SELECT count(*) WHERE embedding IS NOT NULL` = 131 | ⬜ | |
 | 4.4 | Merge + deploy PR-2 (frontend dùng vector) | ⬜ | Sau khi backfill xong |
 

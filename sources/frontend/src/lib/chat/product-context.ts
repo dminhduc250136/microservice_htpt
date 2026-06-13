@@ -1,4 +1,5 @@
 import { normalizeVn, escapeXml } from './vn-text';
+import { embedText } from './gemini-embed';
 import type { ChatProduct, ChatSpec } from './types';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? 'http://api-gateway:8080';
@@ -9,6 +10,45 @@ const CONTEXT_SIZE = 8;
 const MAX_DESC_LEN = 400;
 
 /**
+ * Lấy sản phẩm làm context cho RAG. Ưu tiên SEMANTIC vector search (hiểu ý nghĩa
+ * câu hỏi); nếu vector lỗi / chưa backfill / không có kết quả → TỰ FALLBACK keyword
+ * search cũ. Chat KHÔNG BAO GIỜ chết vì luôn có đường lui (bài học vụ bytea).
+ *
+ * Vector: embed câu hỏi (Gemini text-embedding-004, 768d) → POST /products/vector-search
+ * → DB sort theo cosine distance. DB đã sắp gần→xa nên KHÔNG rank lại.
+ */
+export async function searchProductsForContext(userMessage: string): Promise<ChatProduct[]> {
+  // 1) Thử semantic vector search trước.
+  const semantic = await vectorSearchForContext(userMessage);
+  if (semantic.length > 0) return semantic;
+
+  // 2) Fallback: keyword search cũ (giữ nguyên hành vi trước đây).
+  return keywordSearchFallback(userMessage);
+}
+
+/**
+ * Semantic search: embed câu hỏi → gọi endpoint vector-search. Trả [] nếu embed lỗi,
+ * endpoint lỗi, hoặc chưa có SP nào được backfill embedding (caller fallback keyword).
+ */
+async function vectorSearchForContext(userMessage: string): Promise<ChatProduct[]> {
+  const embedding = await embedText(userMessage, 'RETRIEVAL_QUERY');
+  if (!embedding) return [];
+  try {
+    const res = await fetch(`${GATEWAY}/api/products/vector-search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ embedding, topK: CONTEXT_SIZE }),
+      cache: 'no-store',
+    });
+    if (!res.ok) return [];
+    const env = await res.json();
+    return (env?.data?.content ?? []).map(mapProduct);
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Keyword search via product-service REST (D-18, D-16). Returns up to CONTEXT_SIZE products,
  * xếp hạng theo độ liên quan (rating × độ phổ biến) để gợi ý sản phẩm tốt trước.
  * Falls back to "recently updated" feed if keyword search returns < 3 hits, so the
@@ -16,7 +56,7 @@ const MAX_DESC_LEN = 400;
  *
  * T-22-08 mitigation: keyword goes through encodeURIComponent — no raw SQL from user input.
  */
-export async function searchProductsForContext(userMessage: string): Promise<ChatProduct[]> {
+async function keywordSearchFallback(userMessage: string): Promise<ChatProduct[]> {
   const norm = normalizeVn(userMessage);
   const tokens = norm.split(/\s+/).filter((t) => t.length >= 2).slice(0, 6);
   const keyword = tokens.join(' ');
