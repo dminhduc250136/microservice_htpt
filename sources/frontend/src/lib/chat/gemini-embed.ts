@@ -1,10 +1,11 @@
 import { geminiClient } from './gemini';
 
 /**
- * Model embedding của Gemini — text-embedding-004 sinh vector 768 chiều,
- * khớp cột `embedding vector(768)` ở product-service (migration V10).
+ * Model embedding của Gemini — `gemini-embedding-001` (text-embedding-004 đã bị
+ * gỡ khỏi API v1beta → 404). Model này mặc định 3072 chiều; ta ép về 768 qua
+ * `outputDimensionality` để khớp cột `embedding vector(768)` (migration V10).
  */
-export const EMBED_MODEL = 'text-embedding-004';
+export const EMBED_MODEL = 'gemini-embedding-001';
 
 /** Số chiều vector kỳ vọng (khớp DB). Dùng để verify trước khi tin kết quả. */
 export const EMBED_DIM = 768;
@@ -18,8 +19,20 @@ export const EMBED_DIM = 768;
 export type EmbedTaskType = 'RETRIEVAL_QUERY' | 'RETRIEVAL_DOCUMENT';
 
 /**
- * Embed 1 đoạn text → vector {@link EMBED_DIM} chiều. Trả `null` khi lỗi/sai số
- * chiều để caller TỰ FALLBACK keyword (chat không bao giờ chết — bài học vụ bytea).
+ * Chuẩn hóa L2 (unit vector). gemini-embedding-001 khi `outputDimensionality < 3072`
+ * KHÔNG tự normalize → phải tự chuẩn hóa để cosine distance chuẩn. Backfill cũng
+ * normalize y hệt → query và document cùng "thước đo".
+ */
+function l2Normalize(v: number[]): number[] {
+  let sum = 0;
+  for (const x of v) sum += x * x;
+  const norm = Math.sqrt(sum);
+  return norm > 0 ? v.map((x) => x / norm) : v;
+}
+
+/**
+ * Embed 1 đoạn text → vector {@link EMBED_DIM} chiều (đã L2-normalize). Trả `null`
+ * khi lỗi/sai số chiều để caller TỰ FALLBACK keyword (chat không bao giờ chết).
  *
  * Server-only (geminiClient đọc GEMINI_API_KEY, không lộ ra client).
  */
@@ -33,12 +46,12 @@ export async function embedText(
     const res = await geminiClient.models.embedContent({
       model: EMBED_MODEL,
       contents: input,
-      config: { taskType },
+      config: { taskType, outputDimensionality: EMBED_DIM },
     });
     const values = res.embeddings?.[0]?.values;
     // Chỉ tin khi đúng số chiều — vector lệch chiều sẽ làm CAST vector(768) lỗi ở DB.
     if (Array.isArray(values) && values.length === EMBED_DIM) {
-      return values;
+      return l2Normalize(values);
     }
     return null;
   } catch {

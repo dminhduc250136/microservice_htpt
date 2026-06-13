@@ -25,9 +25,12 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
-const EMBED_MODEL = 'text-embedding-004';
+// gemini-embedding-001: text-embedding-004 đã bị gỡ khỏi v1beta (404). Model này
+// mặc định 3072 chiều → ép 768 qua outputDimensionality + tự L2-normalize (model
+// KHÔNG normalize khi dim < 3072) để khớp cột vector(768) + cosine chuẩn.
+const EMBED_MODEL = 'gemini-embedding-001';
 const EMBED_DIM = 768;
-const PAGE_SIZE = 500;
+const PAGE_SIZE = 100; // backend cap size=100 → phải phân trang để lấy hết SP
 const SLEEP_MS = 120; // giãn nhẹ giữa các request (Gemini free 1500/ngày)
 const MAX_TEXT_LEN = 2000; // cắt bớt mô tả quá dài trước khi embed
 
@@ -55,14 +58,21 @@ async function login() {
   return token;
 }
 
-/** Lấy toàn bộ SP (1 trang lớn). */
+/** Lấy TOÀN BỘ SP — phân trang vì backend cap size=100. */
 async function fetchAllProducts() {
-  const res = await fetch(`${API_BASE}/api/products?size=${PAGE_SIZE}`, {
-    headers: { Accept: 'application/json' },
-  });
-  if (!res.ok) die(`GET products thất bại: HTTP ${res.status}`);
-  const env = await res.json();
-  return env?.data?.content ?? [];
+  const all = [];
+  for (let page = 0; ; page++) {
+    const res = await fetch(`${API_BASE}/api/products?size=${PAGE_SIZE}&page=${page}`, {
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) die(`GET products thất bại: HTTP ${res.status}`);
+    const env = await res.json();
+    const data = env?.data ?? {};
+    const content = data.content ?? [];
+    all.push(...content);
+    if (data.isLast === true || content.length === 0 || page > 50) break;
+  }
+  return all;
 }
 
 /** Dựng text embed từ 1 SP: tên + mô tả + thông số (giống ngữ cảnh user hỏi). */
@@ -77,18 +87,26 @@ function buildText(p) {
   return parts.join('. ').slice(0, MAX_TEXT_LEN);
 }
 
-/** Embed 1 text → vector 768d (taskType RETRIEVAL_DOCUMENT — đối xứng với query). */
+/** Chuẩn hóa L2 (unit vector) — khớp với query embed ở gemini-embed.ts. */
+function l2Normalize(v) {
+  let sum = 0;
+  for (const x of v) sum += x * x;
+  const norm = Math.sqrt(sum);
+  return norm > 0 ? v.map((x) => x / norm) : v;
+}
+
+/** Embed 1 text → vector 768d đã L2-normalize (taskType RETRIEVAL_DOCUMENT — đối xứng query). */
 async function embed(text) {
   const res = await genai.models.embedContent({
     model: EMBED_MODEL,
     contents: text,
-    config: { taskType: 'RETRIEVAL_DOCUMENT' },
+    config: { taskType: 'RETRIEVAL_DOCUMENT', outputDimensionality: EMBED_DIM },
   });
   const values = res.embeddings?.[0]?.values;
   if (!Array.isArray(values) || values.length !== EMBED_DIM) {
     throw new Error(`embedding sai số chiều: ${values?.length}`);
   }
-  return values;
+  return l2Normalize(values);
 }
 
 /** PATCH embedding lên DB qua endpoint admin. */
