@@ -7,7 +7,7 @@
 ---
 
 ## Hiện trạng nền tảng (đã có)
-- ✅ Chat tư vấn RAG dùng **Google Gemini** (`gemini-2.5-flash`) — đã chạy trên VM.
+- ✅ Chat tư vấn RAG dùng **Google Gemini** (`gemini-flash-lite-latest`) — đã chạy trên VM.
 - ✅ Card link sản phẩm trong chat (bấm → trang chi tiết).
 - ✅ Search tách từ + ranking (keyword, chưa semantic).
 - ✅ Data sẵn có: orders, products (soldCount/rating/description/specs), reviews, 131 SP.
@@ -23,8 +23,8 @@
 | 2 | Phân loại ý định (intent) trước RAG | 🟢 Dễ | Khách | ✅ | ⭐⭐ (XONG 2026-06-13) |
 | 3 | Tóm tắt review bằng AI | 🟢 Dễ | Khách | ✅ | ⭐⭐ (XONG 2026-06-13) |
 | 4 | Gợi ý sản phẩm thông minh (ranking) | 🟢 Dễ | Khách | ⬜ | ⭐⭐ |
-| 5 | Dự đoán doanh thu/nhu cầu (DSS admin) | 🟡 TB | Admin | ⬜ | ⭐⭐ |
-| 6 | AI Insight + khuyến nghị (DSS admin) | 🟡 TB | Admin | ⬜ | ⭐⭐ |
+| 5 | Dự đoán doanh thu/nhu cầu (DSS admin) | 🟡 TB | Admin | ✅ | ⭐⭐ (XONG 2026-06-13) |
+| 6 | AI Insight + khuyến nghị (DSS admin) | 🟡 TB | Admin | ✅ | ⭐⭐ (XONG 2026-06-13) |
 | 7 | Collaborative Filtering ("mua X cũng mua Y") | 🔴 Khó | Khách | ⬜ | ⭐ |
 | 8 | Theo dõi hành vi user (view/wishlist) | 🟡 TB | Hạ tầng | ⬜ | ⭐ (nền cho #7) |
 
@@ -62,19 +62,17 @@
 - **Đối tượng**: khách.
 - **Trạng thái**: ⬜.
 
-### 5. Dự đoán doanh thu/nhu cầu (DSS admin) ⭐⭐ — ĐỢT 3 (design xong)
-> Design: [DESIGN-dot-3.md](DESIGN-dot-3.md). Gộp với #6 vào 1 route/panel.
-- **Mục tiêu**: dashboard admin hiện "Dự báo doanh thu (AI)" + xu hướng, từ data orders.
-- **Cần**: tái dùng `revenueByDay` (đã có) → Gemini phân tích/dự báo. Cache 1h.
-- **Đối tượng**: admin. Data orders đã đủ.
-- **Trạng thái**: ⬜ (đã có design, chờ làm).
+### 5. Dự đoán doanh thu/nhu cầu (DSS admin) ⭐⭐ ✅ HOÀN THÀNH (2026-06-13)
+> Design: [DESIGN-dot-3.md](DESIGN-dot-3.md) · PR #52 (+ #53 seed, #54 model). Gộp #6.
+- **Đã làm**: panel "✨ Phân tích & Dự báo (AI)" trên `/admin` — AI đọc revenueByDay →
+  trend + ước tính kỳ tới. Tái dùng endpoint chart có sẵn, cache 1h, requireAdmin.
+- **Đối tượng**: admin. Verify VM: trend "ổn định", ước tính 350-400tr, dựa 31 ngày data.
 
-### 6. AI Insight + khuyến nghị (DSS admin) ⭐⭐ — ĐỢT 3 (design xong)
-> Design: [DESIGN-dot-3.md](DESIGN-dot-3.md). Gộp chung 1 lần gọi Gemini với #5.
-- **Mục tiêu**: panel "Insight": SP doanh số bất thường, nhóm bán chậm → đề xuất hành động.
-- **Cần**: cùng route #5 → Gemini trả luôn insights[] + recommendations[].
-- **Đối tượng**: admin. Nhóm 04 có bước "sinh khuyến nghị".
-- **Trạng thái**: ⬜ (đã có design, chờ làm).
+### 6. AI Insight + khuyến nghị (DSS admin) ⭐⭐ ✅ HOÀN THÀNH (2026-06-13)
+> Design: [DESIGN-dot-3.md](DESIGN-dot-3.md) · cùng route/panel với #5.
+- **Đã làm**: cùng 1 lần gọi Gemini trả luôn insights[] + recommendations[].
+- **Verify VM**: AI tự phát hiện "32 đơn PENDING cao → rủi ro tồn đọng" + khuyến nghị
+  xử lý đơn, tái lập chiến dịch ngày đột biến. Đúng kiểu DSS nhóm 04.
 
 ### 7. Collaborative Filtering ⭐
 - **Mục tiêu**: "Khách mua X cũng mua Y" — gợi ý cá nhân hóa từ lịch sử mua.
@@ -96,7 +94,7 @@
 |-----|-----------|-------|
 | **Đợt 1** | #1 Vector search | Cốt lõi nhóm 04, ấn tượng nhất, fix điểm yếu search. ĐANG LÀM. |
 | **Đợt 2** | #2 Intent + #3 Review summary | ✅ XONG 2026-06-13. → [DESIGN-dot-2.md](DESIGN-dot-2.md). |
-| **Đợt 3** | #5 + #6 DSS admin | Mảng "hỗ trợ ra quyết định" của nhóm 04. **Design xong** → [DESIGN-dot-3.md](DESIGN-dot-3.md). |
+| **Đợt 3** | #5 + #6 DSS admin | ✅ XONG 2026-06-13. → [DESIGN-dot-3.md](DESIGN-dot-3.md). |
 | **Đợt 4** | #4 Gợi ý SP thông minh | Nhanh, bổ sung UX. |
 | **Đợt 5** (tùy chọn) | #8 → #7 Behavior + CF | Phức tạp, cần data hành vi trước. Làm nếu còn thời gian. |
 
@@ -110,13 +108,17 @@
 - **2026-06-13 — Đợt 2 (#2 Intent + #3 Review summary) HOÀN THÀNH.** Cả 2 verify thật
   trên VM. #2: phân loại ý định, chỉ PRODUCT mới RAG. #3: panel tóm tắt review AI, tự ẩn
   khi thiếu review. Hotfix #49 (thinking budget + responseSchema).
-- **Tiếp theo — Đợt 3**: #5 Dự đoán doanh thu + #6 AI Insight (DSS admin). Design xong:
-  [DESIGN-dot-3.md](DESIGN-dot-3.md) — gộp #5+#6 vào 1 panel/route, tái dùng
-  `revenueByDay` có sẵn, AI Gemini phân tích (thinkingBudget:0). KHÔNG đụng DB.
+- **2026-06-13 — Đợt 3 (#5 Dự báo + #6 Insight, DSS admin) HOÀN THÀNH.** Panel
+  "✨ Phân tích & Dự báo (AI)" trên /admin verify thật trên VM: AI ra trend + ước
+  tính + insight ("32 đơn PENDING cao") + khuyến nghị. Seed 28 đơn demo (#53) để đủ
+  data; fix model do quota (#54). Tái dùng endpoint chart có sẵn, KHÔNG đụng DB.
+- **Còn lại (tùy chọn)**: Đợt 4 #4 Gợi ý SP thông minh, Đợt 5 #7/#8 CF + behavior.
 
 ## GHI CHÚ
-- Tất cả dùng **Gemini free tier** (1500 req/ngày) — đủ cho học tập/demo.
+- **Gemini free tier mỗi model cố định CHỈ ~20 req/ngày** (KHÔNG phải 1500). Dùng alias
+  `gemini-flash-lite-latest` (quota free riêng dư dả) cho mọi tính năng AI — qua
+  `GEMINI_CHAT_MODEL` + `INTENT_MODEL`. (Bài học #51 + #54.)
 - Mỗi chức năng nên tách PR riêng + có fallback (không phá tính năng đang chạy).
-- **Gemini 2.5 bật "thinking" mặc định** → với JSON/output ngắn phải `thinkingConfig:{thinkingBudget:0}`
-  kẻo output bị cắt (finishReason MAX_TOKENS). Áp dụng cho mọi lần dùng 2.5 sau (Đợt 3 DSS).
+- **Gemini 2.5 bật "thinking" mặc định** → với JSON/output phải `thinkingConfig:{thinkingBudget:0}`
+  kẻo output bị cắt (finishReason MAX_TOKENS). (Bài học #49.)
 - Verify trên Postgres/VM thật trước khi commit (bài học vụ bytea, category filter).
