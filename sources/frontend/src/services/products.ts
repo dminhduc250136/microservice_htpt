@@ -22,6 +22,7 @@
 import type { paths as _ProductsPaths } from '@/types/api/products.generated';
 import type { Product, Category, PaginatedResponse } from '@/types';
 import { httpGet, httpPost, httpPut, httpDelete } from './http';
+import { isApiError } from './errors';
 
 export type _PathsSurface = _ProductsPaths;
 
@@ -72,15 +73,23 @@ export async function getProductById(id: string): Promise<Product> {
 }
 
 /**
- * Slug-based lookup. Backend does not expose a dedicated /products/slug/{slug}
- * endpoint — it ignores unknown query params and returns all products.
- * Strategy: fetch full first page (size=50), then filter client-side by slug.
- * Phase 7 UI-01: when backend adds slug filter support, simplify to single call.
+ * Slug-based lookup. Gọi thẳng endpoint chuyên dụng `/products/slug/{slug}` (backend
+ * đã có sẵn: ProductController.getProductBySlug → findBySlug).
+ *
+ * Bản cũ tải trang đầu (size=50) rồi lọc client-side — sai khi catalog > 50 SP:
+ * SP nằm ngoài 50 SP đầu (catalog hiện 131 SP, backend cap pageSize=100) trả null,
+ * khiến PDP fallback tra theo id bằng chính slug → 404 → "Không tải được dữ liệu".
+ *
+ * 404 từ backend (slug không tồn tại) → trả null để caller chạy notFound() như cũ.
+ * Lỗi khác (mạng/500) vẫn ném ra để PDP hiển thị RetrySection.
  */
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-  const page = await httpGet<PaginatedResponse<Product>>(`/api/products?size=50`);
-  const found = page?.content?.find(p => p.slug === slug);
-  return found ? normalizeProduct(found) : null;
+  try {
+    return normalizeProduct(await httpGet<Product>(`/api/products/slug/${encodeURIComponent(slug)}`));
+  } catch (err) {
+    if (isApiError(err) && err.code === 'NOT_FOUND') return null;
+    throw err;
+  }
 }
 
 export function listCategories(): Promise<PaginatedResponse<Category>> {
