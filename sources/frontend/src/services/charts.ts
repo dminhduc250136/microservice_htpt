@@ -36,19 +36,37 @@ export interface LowStockItem {
   stock: number;
 }
 
-export type Range = '7d' | '30d' | '90d' | 'all';
+export type Range = '7d' | '30d' | '90d' | 'all' | 'custom';
 
-export const fetchRevenueChart = (range: Range) =>
-  httpGet<RevenuePoint[]>(`/api/orders/admin/charts/revenue?range=${range}`);
+/** Khoảng thời gian chart: hoặc range cố định, hoặc custom from/to (yyyy-MM-dd). */
+export interface TimeWindow {
+  range: Range;
+  from?: string; // yyyy-MM-dd (chỉ dùng khi range='custom')
+  to?: string;   // yyyy-MM-dd
+}
 
-export const fetchTopProducts = (range: Range) =>
-  httpGet<TopProductPoint[]>(`/api/orders/admin/charts/top-products?range=${range}`);
+/** Build query string ?range= hoặc ?from=&to= (Đợt 4: custom date range). */
+function rangeQuery(w: TimeWindow): string {
+  if (w.range === 'custom' && (w.from || w.to)) {
+    const p = new URLSearchParams();
+    if (w.from) p.set('from', w.from);
+    if (w.to) p.set('to', w.to);
+    return p.toString();
+  }
+  return `range=${w.range}`;
+}
+
+export const fetchRevenueChart = (w: TimeWindow) =>
+  httpGet<RevenuePoint[]>(`/api/orders/admin/charts/revenue?${rangeQuery(w)}`);
+
+export const fetchTopProducts = (w: TimeWindow) =>
+  httpGet<TopProductPoint[]>(`/api/orders/admin/charts/top-products?${rangeQuery(w)}`);
 
 export const fetchStatusDistrib = () =>
   httpGet<StatusPoint[]>(`/api/orders/admin/charts/status-distribution`);
 
-export const fetchUserSignups = (range: Range) =>
-  httpGet<SignupPoint[]>(`/api/users/admin/charts/signups?range=${range}`);
+export const fetchUserSignups = (w: TimeWindow) =>
+  httpGet<SignupPoint[]>(`/api/users/admin/charts/signups?${rangeQuery(w)}`);
 
 export const fetchLowStock = () =>
   httpGet<LowStockItem[]>(`/api/products/admin/charts/low-stock`);

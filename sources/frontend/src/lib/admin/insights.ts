@@ -4,8 +4,31 @@ import { escapeXml } from '@/lib/chat/vn-text';
 const GATEWAY = process.env.API_GATEWAY_URL ?? 'http://api-gateway:8080';
 
 /** Range hợp lệ (khớp dashboard admin). */
-export type Range = '7d' | '30d' | '90d' | 'all';
-const VALID_RANGES: Range[] = ['7d', '30d', '90d', 'all'];
+export type Range = '7d' | '30d' | '90d' | 'all' | 'custom';
+const VALID_RANGES: Range[] = ['7d', '30d', '90d', 'all', 'custom'];
+
+/** Khoảng thời gian: range cố định, hoặc custom from/to (yyyy-MM-dd). */
+export interface TimeWindow {
+  range: Range;
+  from?: string;
+  to?: string;
+}
+
+/** Build query string ?range= hoặc ?from=&to= cho endpoint chart. */
+function rangeQuery(w: TimeWindow): string {
+  if (w.range === 'custom' && (w.from || w.to)) {
+    const p = new URLSearchParams();
+    if (w.from) p.set('from', w.from);
+    if (w.to) p.set('to', w.to);
+    return p.toString();
+  }
+  return `range=${w.range}`;
+}
+
+/** Khóa cache theo time window (range hoặc from~to). */
+function cacheKey(w: TimeWindow): string {
+  return w.range === 'custom' ? `custom:${w.from ?? ''}~${w.to ?? ''}` : w.range;
+}
 
 /** TTL cache (ms) — 1h. Data bán hàng đổi chậm → cache mạnh, tiết kiệm quota. */
 const TTL_MS = 60 * 60 * 1000;
@@ -27,7 +50,7 @@ interface CacheEntry {
   at: number;
   data: Insights;
 }
-const cache = new Map<Range, CacheEntry>();
+const cache = new Map<string, CacheEntry>();
 
 interface RevenuePoint {
   date: string;
@@ -63,27 +86,31 @@ async function fetchAdmin<T>(path: string, bearer: string): Promise<T | null> {
  * Trả `null` khi: thiếu data revenue (< {@link MIN_NONZERO_DAYS} ngày có doanh thu),
  * hoặc AI lỗi → caller ẩn panel (dashboard charts vẫn chạy bình thường).
  */
-export async function generateInsights(range: Range, bearer: string): Promise<Insights | null> {
-  const safeRange: Range = VALID_RANGES.includes(range) ? range : '30d';
+export async function generateInsights(window: TimeWindow, bearer: string): Promise<Insights | null> {
+  const w: TimeWindow = VALID_RANGES.includes(window.range)
+    ? window
+    : { range: '30d' };
+  const key = cacheKey(w);
+  const rq = rangeQuery(w);
 
   // Cache hit (chưa hết hạn).
-  const cached = cache.get(safeRange);
+  const cached = cache.get(key);
   if (cached && Date.now() - cached.at < TTL_MS) return cached.data;
 
   const revenue = await fetchAdmin<RevenuePoint[]>(
-    `/api/orders/admin/charts/revenue?range=${safeRange}`, bearer);
+    `/api/orders/admin/charts/revenue?${rq}`, bearer);
   if (!revenue) return null;
   const nonZero = revenue.filter((p) => (p.value ?? 0) > 0);
   if (nonZero.length < MIN_NONZERO_DAYS) return null; // chưa đủ dữ liệu bán hàng
 
   // Lấy thêm top-products + status để insight giàu hơn (không bắt buộc).
   const [topProducts, statusDist] = await Promise.all([
-    fetchAdmin<TopProduct[]>(`/api/orders/admin/charts/top-products?range=${safeRange}`, bearer),
+    fetchAdmin<TopProduct[]>(`/api/orders/admin/charts/top-products?${rq}`, bearer),
     fetchAdmin<StatusPoint[]>(`/api/orders/admin/charts/status-distribution`, bearer),
   ]);
 
   const totalRevenue = revenue.reduce((s, p) => s + (p.value ?? 0), 0);
-  const userBlock = buildDataBlock(safeRange, revenue, topProducts, statusDist);
+  const userBlock = buildDataBlock(w, revenue, topProducts, statusDist);
 
   try {
     const res = await geminiClient.models.generateContent({
@@ -137,7 +164,7 @@ export async function generateInsights(range: Range, bearer: string): Promise<In
       basedOn: { days: revenue.length, totalRevenue },
     };
     if (!data.forecast.summary && data.insights.length === 0) return null;
-    cache.set(safeRange, { at: Date.now(), data });
+    cache.set(key, { at: Date.now(), data });
     return data;
   } catch {
     return null;
@@ -146,11 +173,12 @@ export async function generateInsights(range: Range, bearer: string): Promise<In
 
 /** Dựng <data> cho prompt — escape chống prompt-injection qua data. */
 function buildDataBlock(
-  range: Range,
+  w: TimeWindow,
   revenue: RevenuePoint[],
   topProducts: TopProduct[] | null,
   statusDist: StatusPoint[] | null,
 ): string {
+  const rangeLabel = w.range === 'custom' ? `${w.from ?? '?'} → ${w.to ?? 'nay'}` : w.range;
   const revLines = revenue
     .map((p) => `${p.date}: ${Math.round(p.value ?? 0)}`)
     .join('\n');
@@ -162,7 +190,7 @@ function buildDataBlock(
     .map((s) => `${escapeXml(String(s.status ?? ''))}: ${s.count ?? 0}`)
     .join('\n');
   return (
-    `<data range="${range}">\n` +
+    `<data range="${escapeXml(rangeLabel)}">\n` +
     `<revenue_by_day unit="VND">\n${revLines}\n</revenue_by_day>\n` +
     `<top_products unit="qty_sold">\n${topLines}\n</top_products>\n` +
     `<order_status>\n${statusLines}\n</order_status>\n` +

@@ -42,10 +42,14 @@ export async function GET(req: Request): Promise<Response> {
     return err(429, 'RATE_LIMITED', 'Quá nhanh, thử lại sau ít phút');
   }
 
-  const range = (new URL(req.url).searchParams.get('range') ?? '30d') as Range;
+  const sp = new URL(req.url).searchParams;
+  const from = sp.get('from') ?? undefined;
+  const to = sp.get('to') ?? undefined;
+  // Có from/to → custom range; else dùng range enum (mặc định 30d).
+  const range = (from || to ? 'custom' : (sp.get('range') ?? '30d')) as Range;
   const bearer = req.headers.get('authorization') ?? '';
   try {
-    const insights = await generateInsights(range, bearer);
+    const insights = await generateInsights({ range, from, to }, bearer);
     return ok({ insights });
   } catch {
     return ok({ insights: null }); // mọi lỗi → ẩn panel, không 500

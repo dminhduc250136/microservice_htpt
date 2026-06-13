@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import styles from './page.module.css';
 import {
   fetchProductStats,
@@ -24,6 +24,7 @@ import {
   fetchUserSignups,
   fetchLowStock,
   type Range,
+  type TimeWindow,
   type RevenuePoint,
   type TopProductPoint,
   type StatusPoint,
@@ -86,6 +87,14 @@ export default function AdminDashboard() {
 
   // === Phase 19 Plan 19-04: charts state ===
   const [range, setRange] = useState<Range>('30d'); // D-06 default
+  // Đợt 4: custom date range (chỉ dùng khi range='custom').
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
+  // TimeWindow gửi xuống fetch: range cố định, hoặc custom from/to.
+  const timeWindow: TimeWindow = useMemo(
+    () => (range === 'custom' ? { range, from: customFrom, to: customTo } : { range }),
+    [range, customFrom, customTo],
+  );
   const [revenueCard, setRevenueCard] = useState<CardState<RevenuePoint[]>>({ status: 'loading' });
   const [topProductsCard, setTopProductsCard] = useState<CardState<TopProductPoint[]>>({
     status: 'loading',
@@ -96,23 +105,28 @@ export default function AdminDashboard() {
     status: 'loading',
   });
 
+  // Đợt 4: custom range chưa chọn đủ ngày → chưa fetch (chờ user nhập).
+  const customIncomplete = range === 'custom' && !customFrom && !customTo;
+
   const loadRevenue = useCallback(async () => {
+    if (customIncomplete) return;
     setRevenueCard({ status: 'loading' });
     try {
-      setRevenueCard({ status: 'success', data: await fetchRevenueChart(range) });
+      setRevenueCard({ status: 'success', data: await fetchRevenueChart(timeWindow) });
     } catch (e) {
       setRevenueCard({ status: 'error', error: (e as Error).message ?? 'Không tải được' });
     }
-  }, [range]); // D-06 + Pitfall #5: chỉ depend [range]
+  }, [timeWindow, customIncomplete]);
 
   const loadTopProducts = useCallback(async () => {
+    if (customIncomplete) return;
     setTopProductsCard({ status: 'loading' });
     try {
-      setTopProductsCard({ status: 'success', data: await fetchTopProducts(range) });
+      setTopProductsCard({ status: 'success', data: await fetchTopProducts(timeWindow) });
     } catch (e) {
       setTopProductsCard({ status: 'error', error: (e as Error).message ?? 'Không tải được' });
     }
-  }, [range]);
+  }, [timeWindow, customIncomplete]);
 
   const loadStatus = useCallback(async () => {
     setStatusCard({ status: 'loading' });
@@ -124,13 +138,14 @@ export default function AdminDashboard() {
   }, []); // D-06: pie KHÔNG bị range
 
   const loadSignups = useCallback(async () => {
+    if (customIncomplete) return;
     setSignupsCard({ status: 'loading' });
     try {
-      setSignupsCard({ status: 'success', data: await fetchUserSignups(range) });
+      setSignupsCard({ status: 'success', data: await fetchUserSignups(timeWindow) });
     } catch (e) {
       setSignupsCard({ status: 'error', error: (e as Error).message ?? 'Không tải được' });
     }
-  }, [range]);
+  }, [timeWindow, customIncomplete]);
 
   const loadLowStock = useCallback(async () => {
     setLowStockCard({ status: 'loading' });
@@ -189,7 +204,7 @@ export default function AdminDashboard() {
         />
       </div>
 
-      {/* D-06 + D-07: time-window dropdown */}
+      {/* D-06 + D-07: time-window dropdown + Đợt 4: custom date range */}
       <div className={styles.timeWindowRow}>
         <label htmlFor="time-window">Khoảng thời gian:</label>
         <select
@@ -201,11 +216,34 @@ export default function AdminDashboard() {
           <option value="30d">30 ngày</option>
           <option value="90d">90 ngày</option>
           <option value="all">Tất cả</option>
+          <option value="custom">Tùy chỉnh…</option>
         </select>
+
+        {/* Đợt 4: 2 ô date hiện khi chọn "Tùy chỉnh" */}
+        {range === 'custom' && (
+          <span className={styles.customDateRow}>
+            <label htmlFor="date-from">Từ</label>
+            <input
+              id="date-from"
+              type="date"
+              value={customFrom}
+              max={customTo || undefined}
+              onChange={(e) => setCustomFrom(e.target.value)}
+            />
+            <label htmlFor="date-to">đến</label>
+            <input
+              id="date-to"
+              type="date"
+              value={customTo}
+              min={customFrom || undefined}
+              onChange={(e) => setCustomTo(e.target.value)}
+            />
+          </span>
+        )}
       </div>
 
-      {/* Đợt 3 DSS: panel AI phân tích + dự báo doanh thu (đồng bộ range, tự ẩn nếu thiếu data) */}
-      <InsightsPanel range={range} />
+      {/* Đợt 3 DSS: panel AI phân tích + dự báo doanh thu (đồng bộ time window, tự ẩn nếu thiếu data) */}
+      <InsightsPanel range={range} from={customFrom} to={customTo} />
 
       {/* D-07: 2x2 charts grid */}
       <div className={styles.chartsGrid}>
