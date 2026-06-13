@@ -12,8 +12,11 @@ export const geminiClient = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY ?? '',
 });
 
-/** Model chat — Gemini 2.5 Flash (nhanh, free tier). */
-export const GEMINI_CHAT_MODEL = 'gemini-2.5-flash';
+// Model chat — gemini-2.5-flash-lite. ĐỔI từ gemini-2.5-flash: free tier của flash
+// CHỈ 20 request/ngày (RESOURCE_EXHAUSTED rất nhanh khi demo), flash-lite ~1000/ngày
+// (gấp ~50 lần). Chất lượng thấp hơn chút nhưng đủ cho chat tư vấn + tóm tắt review.
+// Dùng chung cho chat (route stream) và review-summary qua GEMINI_CHAT_MODEL.
+export const GEMINI_CHAT_MODEL = 'gemini-2.5-flash-lite';
 
 // Tái dùng nguyên văn system prompt tiếng Việt đã tinh chỉnh cho RAG (giữ 1 nguồn
 // duy nhất ở anthropic.ts để không lệch khi sửa). Prompt độc lập model.
