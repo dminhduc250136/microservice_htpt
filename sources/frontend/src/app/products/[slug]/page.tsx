@@ -14,6 +14,7 @@ import RetrySection from '@/components/ui/RetrySection/RetrySection';
 import { useToast } from '@/components/ui/Toast/Toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { getProductBySlug, getProductById, listProducts } from '@/services/products';
+import { rankRelatedProducts } from '@/lib/products/rank-related';
 import { addToCart } from '@/services/cart';
 import { CART_QUERY_KEY } from '@/hooks/useCart';
 import { isApiError } from '@/services/errors';
@@ -61,12 +62,15 @@ export default function ProductDetailPage() {
       }
       setProduct(p);
       // Load related products (best-effort; failure does not flip the page state).
+      // Đợt 4 #4: lấy rộng (20 SP cùng danh mục) rồi RANK theo chất lượng/độ phổ biến
+      // (rating + bán chạy + còn hàng + giảm giá), cắt 4 tốt nhất — thay vì 4 SP mới nhất.
       try {
         const resp = await listProducts({
-          size: 4,
+          size: 20,
           categoryId: p.category?.id,
         });
-        setRelatedProducts((resp?.content ?? []).filter((x) => x.id !== p.id).slice(0, 4));
+        const candidates = (resp?.content ?? []).filter((x) => x.id !== p.id);
+        setRelatedProducts(rankRelatedProducts(candidates, 4));
       } catch {
         setRelatedProducts([]);
       }
