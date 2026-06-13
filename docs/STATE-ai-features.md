@@ -19,7 +19,7 @@
 
 | # | Chức năng | Tier | Đối tượng | Trạng thái | Ưu tiên |
 |---|-----------|------|-----------|-----------|---------|
-| 1 | Vector / Semantic Search cho RAG | 🟡 TB | Khách | ⬜ | ⭐⭐⭐ (đang chọn làm) |
+| 1 | Vector / Semantic Search cho RAG | 🟡 TB | Khách | ✅ | ⭐⭐⭐ (XONG 2026-06-13) |
 | 2 | Phân loại ý định (intent) trước RAG | 🟢 Dễ | Khách | ⬜ | ⭐⭐ |
 | 3 | Tóm tắt review bằng AI | 🟢 Dễ | Khách | ⬜ | ⭐⭐ |
 | 4 | Gợi ý sản phẩm thông minh (ranking) | 🟢 Dễ | Khách | ⬜ | ⭐⭐ |
@@ -35,24 +35,26 @@
 
 ## CHI TIẾT TỪNG CHỨC NĂNG
 
-### 1. Vector / Semantic Search cho RAG ⭐⭐⭐ (ĐANG CHỌN LÀM)
+### 1. Vector / Semantic Search cho RAG ⭐⭐⭐ ✅ HOÀN THÀNH (2026-06-13)
 > Plan + state riêng: [PLAN-vector-search.md](PLAN-vector-search.md), [STATE-vector-search.md](STATE-vector-search.md)
-- **Mục tiêu**: "laptop pin trâu cho lập trình" → tìm máy RAM/pin cao dù tên không chứa từ đó.
-- **Cần**: pgvector (đổi image) + Gemini embedding + cột vector(768) + endpoint + backfill 131 SP.
-- **Đối tượng**: khách (chatbot).
-- **Trạng thái**: ⬜ (đã có plan chi tiết, chờ duyệt).
+- **Mục tiêu**: "laptop pin trâu cho lập trình" → tìm máy RAM/pin cao dù tên không chứa từ đó. ✅ đạt.
+- **Đã làm**: pgvector image + cột `vector(768)` + index HNSW + `gemini-embedding-001`
+  (768d, L2-normalize) + endpoint `POST /products/vector-search` + backfill 131/131 SP.
+- **Đối tượng**: khách (chatbot). **Đã verify chat stream thật trên VM**.
 
-### 2. Phân loại ý định (Intent classification) ⭐⭐
+### 2. Phân loại ý định (Intent classification) ⭐⭐ — ĐỢT 2 (design xong)
+> Design chi tiết: [DESIGN-dot-2.md](DESIGN-dot-2.md)
 - **Mục tiêu**: trước khi RAG, phân loại câu hỏi: "hỏi sản phẩm" / "trò chuyện" / "hỏi đơn hàng" / "chính sách". Hỏi sản phẩm → RAG; trò chuyện → trả lời thẳng (đỡ tốn search).
-- **Cần**: 1 bước gọi Gemini (hoặc rule đơn giản) phân loại trước trong `route.ts`.
+- **Cần**: 2 tầng — rule nhanh + (tùy chọn) Gemini phân loại 1 từ, trong `route.ts`. Fallback = PRODUCT.
 - **Đối tượng**: khách (chatbot). Nhóm 04 có bước này.
-- **Trạng thái**: ⬜.
+- **Trạng thái**: ⬜ (đã có design, chờ làm).
 
-### 3. Tóm tắt review bằng AI ⭐⭐
+### 3. Tóm tắt review bằng AI ⭐⭐ — ĐỢT 2 (design xong)
+> Design chi tiết: [DESIGN-dot-2.md](DESIGN-dot-2.md)
 - **Mục tiêu**: trang chi tiết SP hiện "Tóm tắt đánh giá: điểm mạnh/yếu" do AI tổng hợp từ review.
-- **Cần**: endpoint `/products/{id}/review-summary` → Gemini tóm tắt review → cache 24h.
+- **Cần**: Next.js route `GET /api/chat/review-summary` (embed ở frontend như chat) + cache TTL 24h.
 - **Đối tượng**: khách. Data review đã đủ.
-- **Trạng thái**: ⬜.
+- **Trạng thái**: ⬜ (đã có design, chờ làm).
 
 ### 4. Gợi ý sản phẩm thông minh ⭐⭐
 - **Mục tiêu**: "Sản phẩm liên quan" rank theo score (soldCount + rating + còn hàng + giảm giá), không chỉ cùng category.
@@ -91,7 +93,7 @@
 | Đợt | Chức năng | Lý do |
 |-----|-----------|-------|
 | **Đợt 1** | #1 Vector search | Cốt lõi nhóm 04, ấn tượng nhất, fix điểm yếu search. ĐANG LÀM. |
-| **Đợt 2** | #2 Intent + #3 Review summary | Dễ, customer-facing, hoàn thiện chatbot. |
+| **Đợt 2** | #2 Intent + #3 Review summary | Dễ, customer-facing, hoàn thiện chatbot. **Design xong** → [DESIGN-dot-2.md](DESIGN-dot-2.md). |
 | **Đợt 3** | #5 + #6 DSS admin | Mảng "hỗ trợ ra quyết định" của nhóm 04. |
 | **Đợt 4** | #4 Gợi ý SP thông minh | Nhanh, bổ sung UX. |
 | **Đợt 5** (tùy chọn) | #8 → #7 Behavior + CF | Phức tạp, cần data hành vi trước. Làm nếu còn thời gian. |
@@ -99,7 +101,11 @@
 ---
 
 ## NHẬT KÝ TIẾN ĐỘ
-- (chưa bắt đầu — đang ở bước lập kế hoạch cho #1 Vector search)
+- **2026-06-13 — Đợt 1 (#1 Vector search) HOÀN THÀNH.** Semantic search chạy thật
+  trên VM: 131/131 SP có embedding (`gemini-embedding-001`, 768d), chat stream test
+  end-to-end OK ("pin trâu lập trình" → Acer Swift OLED pin 18h). Có fallback keyword.
+  Lỗi đã sửa: compile JavaDoc `*/`, model 404, dim 3072→768, backfill phân trang.
+- **Tiếp theo — Đợt 2**: #2 Intent + #3 Tóm tắt review. Design: [DESIGN-dot-2.md](DESIGN-dot-2.md).
 
 ## GHI CHÚ
 - Tất cả dùng **Gemini free tier** (1500 req/ngày) — đủ cho học tập/demo.
