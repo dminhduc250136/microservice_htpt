@@ -1,0 +1,139 @@
+.panel {
+  border: 1px solid #e3e8f0;
+  background: linear-gradient(180deg, #f5f8ff 0%, #fdfdff 100%);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #4f46e5;
+  background: #eef0ff;
+  border: 1px solid #dcdcff;
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+
+.basedOn {
+  font-size: 0.78rem;
+  color: #8a93a5;
+}
+
+.forecast {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid #e8edf5;
+  border-radius: 10px;
+  margin-bottom: 14px;
+}
+
+.trendIcon {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.trendLabel {
+  font-size: 0.92rem;
+  color: #2a3242;
+}
+
+.summary {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+  color: #4a5266;
+  line-height: 1.5;
+}
+
+.estimate {
+  margin: 8px 0 0;
+  font-size: 0.9rem;
+  color: #4f46e5;
+  font-weight: 500;
+}
+
+.cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+@media (max-width: 640px) {
+  .cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+.col {
+  min-width: 0;
+}
+
+.colTitle {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #3a4252;
+  margin: 0 0 8px;
+}
+
+.list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.list li {
+  font-size: 0.88rem;
+  color: #4a5266;
+  line-height: 1.5;
+}
+
+.disclaimer {
+  margin: 14px 0 0;
+  font-size: 0.74rem;
+  color: #a0a8b8;
+  font-style: italic;
+}
+
+.skeletonLine,
+.skeletonLineShort {
+  height: 14px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #eef1f6 25%, #e3e8f0 50%, #eef1f6 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.3s ease-in-out infinite;
+  margin-top: 10px;
+}
+
+.skeletonLine {
+  width: 100%;
+}
+
+.skeletonLineShort {
+  width: 55%;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

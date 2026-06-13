@@ -16,6 +16,7 @@ import { TopProductsChart } from '@/components/admin/TopProductsChart';
 import { StatusDistributionChart } from '@/components/admin/StatusDistributionChart';
 import { UserSignupsChart } from '@/components/admin/UserSignupsChart';
 import { LowStockSection } from '@/components/admin/LowStockSection';
+import { InsightsPanel } from '@/components/admin/InsightsPanel';
 import {
   fetchRevenueChart,
   fetchTopProducts,
@@ -202,6 +203,9 @@ export default function AdminDashboard() {
           <option value="all">Tất cả</option>
         </select>
       </div>
+
+      {/* Đợt 3 DSS: panel AI phân tích + dự báo doanh thu (đồng bộ range, tự ẩn nếu thiếu data) */}
+      <InsightsPanel range={range} />
 
       {/* D-07: 2x2 charts grid */}
       <div className={styles.chartsGrid}>
