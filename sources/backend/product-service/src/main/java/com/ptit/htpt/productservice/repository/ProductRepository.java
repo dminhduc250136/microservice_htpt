@@ -7,8 +7,10 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 public interface ProductRepository extends JpaRepository<ProductEntity, String> {
   Optional<ProductEntity> findBySlug(String slug);
@@ -112,4 +114,40 @@ public interface ProductRepository extends JpaRepository<ProductEntity, String> 
    */
   @Query("SELECT p FROM ProductEntity p WHERE p.stock < :threshold ORDER BY p.stock ASC")
   List<ProductEntity> findLowStock(@Param("threshold") int threshold, Pageable cap);
+
+  /**
+   * Vector search (semantic RAG) — Đợt 1 AI. Trả về id của top-K sản phẩm GẦN NGHĨA
+   * nhất với câu hỏi (đã embed thành vector 768 chiều), theo cosine distance.
+   *
+   * <p>Toán tử pgvector {@code <=>} = cosine distance (0 = trùng hướng, 2 = ngược).
+   * ORDER BY tăng dần → SP gần nghĩa nhất lên đầu. Chỉ xét SP đã có embedding
+   * (backfill dần); SP chưa embed bị bỏ qua → frontend fallback keyword.
+   *
+   * <p>{@code :vec} truyền dạng chuỗi pgvector literal {@code "[0.1,0.2,...]"} rồi
+   * CAST sang vector — tránh phụ thuộc Hibernate vector type. Native query nên
+   * @SQLRestriction (deleted=false) KHÔNG tự áp dụng → phải tự lọc {@code deleted = false}.
+   */
+  @Query(value = """
+      SELECT id FROM products
+      WHERE deleted = false AND embedding IS NOT NULL
+      ORDER BY embedding <=> CAST(:vec AS vector)
+      LIMIT :topK
+      """, nativeQuery = true)
+  List<String> searchByEmbedding(@Param("vec") String vec, @Param("topK") int topK);
+
+  /**
+   * Lưu/cập nhật embedding cho 1 sản phẩm (backfill hoặc khi tạo/sửa SP).
+   * Native UPDATE để khỏi map cột vector vào entity (giữ ddl-auto=validate an toàn).
+   * {@code :vec} là pgvector literal {@code "[...]"}.
+   */
+  @Modifying
+  @Transactional
+  @Query(value = "UPDATE products SET embedding = CAST(:vec AS vector) WHERE id = :id",
+      nativeQuery = true)
+  int updateEmbedding(@Param("id") String id, @Param("vec") String vec);
+
+  /** Đếm số SP đã có embedding (verify backfill). */
+  @Query(value = "SELECT count(*) FROM products WHERE deleted = false AND embedding IS NOT NULL",
+      nativeQuery = true)
+  long countWithEmbedding();
 }

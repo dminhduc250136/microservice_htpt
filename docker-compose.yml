@@ -23,7 +23,10 @@ services:
       retries: 10
 
   postgres-product:
-    image: postgres:16-alpine
+    # pgvector image (debian, PG16) thay postgres:16-alpine để có extension `vector`
+    # cho semantic search (Đợt 1 AI). Giữ nguyên volume/env/ports — data PG16 tương
+    # thích. Backup pg_dump trước khi đổi trên VM (rủi ro alpine/musl→debian/glibc).
+    image: pgvector/pgvector:pg16
     environment:
       POSTGRES_DB: product_svc
       POSTGRES_USER: product_svc
