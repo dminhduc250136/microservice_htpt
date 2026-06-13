@@ -78,10 +78,11 @@ public interface OrderRepository extends JpaRepository<OrderEntity, String> {
       FROM OrderEntity o
       WHERE o.status = 'DELIVERED'
         AND (cast(:from as timestamp) IS NULL OR o.createdAt >= :from)
+        AND (cast(:to as timestamp) IS NULL OR o.createdAt <= :to)
       GROUP BY FUNCTION('DATE', o.createdAt)
       ORDER BY day ASC
       """)
-  List<Object[]> aggregateRevenueByDay(@Param("from") Instant from);
+  List<Object[]> aggregateRevenueByDay(@Param("from") Instant from, @Param("to") Instant to);
 
   /**
    * Phase 19 / Plan 19-01 (ADMIN-02): aggregate top-products theo qty bán
@@ -94,10 +95,11 @@ public interface OrderRepository extends JpaRepository<OrderEntity, String> {
       FROM OrderEntity o JOIN o.items i
       WHERE o.status = 'DELIVERED'
         AND (cast(:from as timestamp) IS NULL OR o.createdAt >= :from)
+        AND (cast(:to as timestamp) IS NULL OR o.createdAt <= :to)
       GROUP BY i.productId
       ORDER BY qtySold DESC
       """)
-  List<Object[]> aggregateTopProducts(@Param("from") Instant from, Pageable limit);
+  List<Object[]> aggregateTopProducts(@Param("from") Instant from, @Param("to") Instant to, Pageable limit);
 
   /**
    * Phase 19 / Plan 19-01 (ADMIN-03): snapshot phân phối order status (KHÔNG range).

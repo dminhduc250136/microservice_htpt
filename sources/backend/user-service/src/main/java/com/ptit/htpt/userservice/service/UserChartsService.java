@@ -35,8 +35,13 @@ public class UserChartsService {
 
   @Transactional(readOnly = true)
   public List<SignupPoint> signupsByDay(Range range) {
-    Instant from = range.toFromInstant();
-    List<Object[]> rows = userRepo.aggregateSignupsByDay(from);
+    return signupsByDay(range.toFromInstant(), null);
+  }
+
+  /** Custom date range (Đợt 4): signups theo ngày trong [from, to]. */
+  @Transactional(readOnly = true)
+  public List<SignupPoint> signupsByDay(Instant from, Instant to) {
+    List<Object[]> rows = userRepo.aggregateSignupsByDay(from, to);
 
     Map<LocalDate, Long> raw = new HashMap<>();
     for (Object[] r : rows) {
@@ -49,7 +54,9 @@ public class UserChartsService {
     LocalDate start = from != null
         ? from.atZone(ZoneId.systemDefault()).toLocalDate()
         : raw.keySet().stream().min(Comparator.naturalOrder()).orElse(LocalDate.now());
-    LocalDate end = LocalDate.now();
+    LocalDate end = to != null
+        ? to.atZone(ZoneId.systemDefault()).toLocalDate()
+        : LocalDate.now();
 
     List<SignupPoint> points = new ArrayList<>();
     for (LocalDate d = start; !d.isAfter(end); d = d.plusDays(1)) {

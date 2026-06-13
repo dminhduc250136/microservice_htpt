@@ -6,8 +6,13 @@ import com.ptit.htpt.orderservice.service.OrderChartsService.RevenuePoint;
 import com.ptit.htpt.orderservice.service.OrderChartsService.StatusPoint;
 import com.ptit.htpt.orderservice.service.OrderChartsService.TopProductPoint;
 import com.ptit.htpt.orderservice.service.Range;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,20 +43,53 @@ public class AdminChartsController {
   @GetMapping("/revenue")
   public ApiResponse<List<RevenuePoint>> revenue(
       @RequestParam(value = "range", required = false, defaultValue = "30d") String range,
+      @RequestParam(value = "from", required = false) String from,
+      @RequestParam(value = "to", required = false) String to,
       @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader) {
     jwtRoleGuard.requireAdmin(authHeader);
-    return ApiResponse.of(200, "Revenue chart",
-        chartsService.revenueByDay(Range.parse(range)));
+    // Đợt 4: nếu có from/to (custom date range) → dùng; else fallback range enum.
+    List<RevenuePoint> data = (from != null || to != null)
+        ? chartsService.revenueByDay(parseFrom(from), parseTo(to))
+        : chartsService.revenueByDay(Range.parse(range));
+    return ApiResponse.of(200, "Revenue chart", data);
   }
 
   @GetMapping("/top-products")
   public ApiResponse<List<TopProductPoint>> topProducts(
       @RequestParam(value = "range", required = false, defaultValue = "30d") String range,
+      @RequestParam(value = "from", required = false) String from,
+      @RequestParam(value = "to", required = false) String to,
       @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader) {
     jwtRoleGuard.requireAdmin(authHeader);
     // D-03 + Pitfall #4: forward authHeader xuống service → ProductBatchClient
-    return ApiResponse.of(200, "Top products",
-        chartsService.topProducts(Range.parse(range), authHeader));
+    List<TopProductPoint> data = (from != null || to != null)
+        ? chartsService.topProducts(parseFrom(from), parseTo(to), authHeader)
+        : chartsService.topProducts(Range.parse(range), authHeader);
+    return ApiResponse.of(200, "Top products", data);
+  }
+
+  /** Parse "yyyy-MM-dd" → Instant đầu ngày (00:00). null/blank → null. 400 nếu sai định dạng. */
+  private static Instant parseFrom(String date) {
+    if (date == null || date.isBlank()) {
+      return null;
+    }
+    return parseDate(date).atStartOfDay(ZoneId.systemDefault()).toInstant();
+  }
+
+  /** Parse "yyyy-MM-dd" → Instant CUỐI ngày (23:59:59.999). null/blank → null. */
+  private static Instant parseTo(String date) {
+    if (date == null || date.isBlank()) {
+      return null;
+    }
+    return parseDate(date).atTime(23, 59, 59, 999_000_000).atZone(ZoneId.systemDefault()).toInstant();
+  }
+
+  private static LocalDate parseDate(String date) {
+    try {
+      return LocalDate.parse(date.trim());
+    } catch (Exception e) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ngày không hợp lệ (yyyy-MM-dd): " + date);
+    }
   }
 
   @GetMapping("/status-distribution")

@@ -28,8 +28,9 @@ public interface UserRepository extends JpaRepository<UserEntity, String> {
       SELECT FUNCTION('DATE', u.createdAt) AS day, COUNT(u) AS cnt
       FROM UserEntity u
       WHERE (cast(:from as timestamp) IS NULL OR u.createdAt >= :from)
+        AND (cast(:to as timestamp) IS NULL OR u.createdAt <= :to)
       GROUP BY FUNCTION('DATE', u.createdAt)
       ORDER BY day ASC
       """)
-  List<Object[]> aggregateSignupsByDay(@Param("from") Instant from);
+  List<Object[]> aggregateSignupsByDay(@Param("from") Instant from, @Param("to") Instant to);
 }
