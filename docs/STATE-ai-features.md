@@ -3,6 +3,7 @@
 > File trạng thái tổng thể các chức năng AI dự kiến cho dự án e-commerce.
 > Ký hiệu: ⬜ chưa làm · 🔄 đang làm · ✅ xong · ⏸️ tạm dừng · ❌ bỏ
 > Hướng tham chiếu: **Nhóm 04 (BlueSky)** — RAG chatbot + DSS admin.
+> 📄 **Tài liệu tổng hợp các tính năng đã build**: [AI-FEATURES.md](AI-FEATURES.md)
 
 ---
 
@@ -22,7 +23,7 @@
 | 1 | Vector / Semantic Search cho RAG | 🟡 TB | Khách | ✅ | ⭐⭐⭐ (XONG 2026-06-13) |
 | 2 | Phân loại ý định (intent) trước RAG | 🟢 Dễ | Khách | ✅ | ⭐⭐ (XONG 2026-06-13) |
 | 3 | Tóm tắt review bằng AI | 🟢 Dễ | Khách | ✅ | ⭐⭐ (XONG 2026-06-13) |
-| 4 | Gợi ý sản phẩm thông minh (ranking) | 🟢 Dễ | Khách | ⬜ | ⭐⭐ |
+| 4 | Gợi ý sản phẩm thông minh (ranking) | 🟢 Dễ | Khách | ✅ | ⭐⭐ (XONG 2026-06-14) |
 | 5 | Dự đoán doanh thu/nhu cầu (DSS admin) | 🟡 TB | Admin | ✅ | ⭐⭐ (XONG 2026-06-13) |
 | 6 | AI Insight + khuyến nghị (DSS admin) | 🟡 TB | Admin | ✅ | ⭐⭐ (XONG 2026-06-13) |
 | 7 | Collaborative Filtering ("mua X cũng mua Y") | 🔴 Khó | Khách | ⬜ | ⭐ |
@@ -56,11 +57,12 @@
 - **Lỗi đã sửa (#49)**: gemini-2.5 "thinking" cắt JSON → `thinkingBudget:0`; trả mảng → `responseSchema` object.
 - **Đối tượng**: khách. Verify VM: SP 6 review → panel đầy đủ; SP 0 review → ẩn.
 
-### 4. Gợi ý sản phẩm thông minh ⭐⭐
-- **Mục tiêu**: "Sản phẩm liên quan" rank theo score (soldCount + rating + còn hàng + giảm giá), không chỉ cùng category.
-- **Cần**: endpoint `/products/related/{id}` với ranking. Data đã có.
+### 4. Gợi ý sản phẩm thông minh ⭐⭐ ✅ HOÀN THÀNH (2026-06-14)
+> PR #56.
+- **Đã làm**: `lib/products/rank-related.ts` — "Sản phẩm liên quan" rank theo score
+  (rating×2 + log(soldCount) + còn hàng + giảm giá), lấy 20 SP cùng category rồi cắt 4.
+- **Đặc điểm**: ranking thuần client-side, KHÔNG gọi AI → nhẹ, không tốn quota.
 - **Đối tượng**: khách.
-- **Trạng thái**: ⬜.
 
 ### 5. Dự đoán doanh thu/nhu cầu (DSS admin) ⭐⭐ ✅ HOÀN THÀNH (2026-06-13)
 > Design: [DESIGN-dot-3.md](DESIGN-dot-3.md) · PR #52 (+ #53 seed, #54 model). Gộp #6.
@@ -95,7 +97,7 @@
 | **Đợt 1** | #1 Vector search | Cốt lõi nhóm 04, ấn tượng nhất, fix điểm yếu search. ĐANG LÀM. |
 | **Đợt 2** | #2 Intent + #3 Review summary | ✅ XONG 2026-06-13. → [DESIGN-dot-2.md](DESIGN-dot-2.md). |
 | **Đợt 3** | #5 + #6 DSS admin | ✅ XONG 2026-06-13. → [DESIGN-dot-3.md](DESIGN-dot-3.md). |
-| **Đợt 4** | #4 Gợi ý SP thông minh | Nhanh, bổ sung UX. |
+| **Đợt 4** | #4 Gợi ý SP thông minh | ✅ XONG 2026-06-14 (PR #56). |
 | **Đợt 5** (tùy chọn) | #8 → #7 Behavior + CF | Phức tạp, cần data hành vi trước. Làm nếu còn thời gian. |
 
 ---
