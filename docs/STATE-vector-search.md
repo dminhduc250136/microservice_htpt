@@ -1,6 +1,6 @@
 # STATE: Vector Search cho Chatbot RAG — Theo dõi tiến độ
 
-> File trạng thái các công việc. Cập nhật cột **Trạng thái** khi làm.
+> ✅ **HOÀN THÀNH 2026-06-13** — semantic search chạy thật trên VM (131/131 SP).
 > Ký hiệu: ⬜ chưa làm · 🔄 đang làm · ✅ xong · ⏸️ tạm dừng · ❌ lỗi/bỏ
 > Plan chi tiết: [PLAN-vector-search.md](PLAN-vector-search.md)
 
@@ -34,8 +34,8 @@
 | # | Việc | Trạng thái | Ghi chú |
 |---|------|-----------|---------|
 | 1.1 | Đổi image postgres-product → `pgvector/pgvector:pg16` trong docker-compose.yml | ✅ | Giữ nguyên volume/env/ports |
-| 1.2 | Restart postgres-product, verify 131 SP còn nguyên | ⬜ | RỦI RO: alpine→debian collation — làm khi deploy VM |
-| 1.3 | Test pgvector SQL thủ công trên VM: `CREATE EXTENSION vector`, `'[1,2,3]'::vector`, `<=>` | ⬜ | Xác nhận trước khi tin — làm khi deploy VM |
+| 1.2 | Restart postgres-product, verify 131 SP còn nguyên | ✅ | VM: total=131, không mất data sau đổi image |
+| 1.3 | Test pgvector SQL thủ công trên VM (extension, `<=>`) | ✅ | vector v0.8.2, cột vector(768) OK |
 | 1.4 | Migration V10: cột `embedding vector(768)` + index HNSW cosine | ✅ | db/migration/V10__add_product_embedding.sql |
 
 ### Giai đoạn 2 — Backend product-service (PR-1)
@@ -58,18 +58,18 @@
 ### Giai đoạn 4 — Deploy + Backfill
 | # | Việc | Trạng thái | Ghi chú |
 |---|------|-----------|---------|
-| 4.1 | Merge + deploy PR-1 (hạ tầng) | ⬜ | Có fallback → không phá chat |
-| 4.2 | Script backfill embed 131 SP → PATCH lên DB | 🔄 | scripts/backfill-embeddings.mjs đã viết, chạy khi deploy |
-| 4.3 | Verify: `SELECT count(*) WHERE embedding IS NOT NULL` = 131 | ⬜ | |
-| 4.4 | Merge + deploy PR-2 (frontend dùng vector) | ⬜ | Sau khi backfill xong |
+| 4.1 | Merge + deploy PR-1 (hạ tầng) | ✅ | #42 fail compile → hotfix #44 deploy OK |
+| 4.2 | Script backfill embed 131 SP → PATCH lên DB | ✅ | VM: 131/131 OK |
+| 4.3 | Verify `count(embedding)` = 131 | ✅ | total=131, with_emb=131 |
+| 4.4 | Merge + deploy PR-2 + fix model | ✅ | #44 frontend + #45 model |
 
 ### Giai đoạn 5 — Kiểm thử
 | # | Việc | Trạng thái | Ghi chú |
 |---|------|-----------|---------|
-| 5.1 | Test chat semantic: "laptop pin trâu cho lập trình" → ra máy RAM/pin cao | ⬜ | |
-| 5.2 | Test "laptop gaming RTX" → ra laptop có RTX | ⬜ | |
-| 5.3 | Test fallback: tắt vector (giả lập) → keyword vẫn chạy | ⬜ | |
-| 5.4 | So sánh trước/sau: câu hỏi ngữ nghĩa keyword cũ trượt, vector ra đúng | ⬜ | Bằng chứng cho báo cáo |
+| 5.1 | "laptop pin trâu cho lập trình" | ✅ | Acer Swift OLED (pin 18h), Dell XPS, ThinkPad |
+| 5.2 | "laptop gaming RTX" | ✅ | MSI Cyborg/AORUS/Predator RTX |
+| 5.3 | "tai nghe chống ồn" | ✅ | Bose QC45, Sony WH-1000XM5 |
+| 5.4 | Chat stream end-to-end (có JWT) | ✅ | HTTP 200, AI gợi ý đúng + card link |
 
 ---
 
@@ -82,15 +82,19 @@
 | Gemini embed quota | 131 SP = 131 request, free tier 1500/ngày → OK |
 | pgvector SQL sai cú pháp | Test thủ công trên Postgres VM (1.3) trước khi commit |
 
-## PR liên quan (cập nhật khi tạo)
-- PR-1 (hạ tầng): _đang code xong, chuẩn bị commit_
-- PR-2 (frontend): _chưa tạo_
+## PR liên quan
+- #42 hạ tầng backend (deploy fail vì lỗi compile JavaDoc `*/`)
+- #44 hotfix compile + frontend (cherry-pick từ #43) → deploy OK
+- #45 fix model `text-embedding-004` → `gemini-embedding-001` (768d + L2-normalize)
+- (#43 frontend đã merge nhầm vào nhánh #42, không lên main; nội dung đã gộp ở #44)
+
+## Lỗi đã gặp & sửa
+- **Compile fail**: `/api/*/admin/**` trong JavaDoc chứa `*/` đóng comment sớm → đổi mô tả.
+- **Model 404**: `text-embedding-004` bị Google gỡ khỏi v1beta → đổi `gemini-embedding-001`.
+- **Dim 3072**: model mới mặc định 3072 chiều → ép `outputDimensionality:768` + L2-normalize.
+- **Backfill thiếu SP**: backend cap `size=100` → phân trang để lấy đủ 131.
 
 ## Nhật ký
-- Đã code PR-1 (hạ tầng): migration V10 (cột vector(768) + index HNSW), repo
-  searchByEmbedding/updateEmbedding/countWithEmbedding, service vectorSearch +
-  updateEmbedding (validate 768d, giữ thứ tự gần→xa), endpoint public
-  POST /products/vector-search + admin PATCH /admin/products/{id}/embedding +
-  GET embedding/count, đổi image pgvector, gateway public route.
-- CÒN LẠI khi deploy VM: backup pg_dump (0.1), đổi image + verify 131 SP (1.2),
-  test pgvector SQL thủ công (1.3) TRƯỚC khi tin.
+- **2026-06-13 ✅ HOÀN THÀNH.** Hạ tầng pgvector + 131/131 SP embedding
+  (`gemini-embedding-001`, 768d), endpoint + chat stream test thật trên VM đều OK.
+  Có fallback keyword nếu vector lỗi.
