@@ -1,4 +1,4 @@
-import { anthropicClient, SYSTEM_PROMPT_VN } from '@/lib/chat/anthropic';
+import { geminiClient, GEMINI_CHAT_MODEL, SYSTEM_PROMPT_VN } from '@/lib/chat/gemini';
 import { verifyJwtFromRequest } from '@/lib/chat/auth';
 import { checkRateLimit } from '@/lib/chat/rate-limit';
 import { ensureSchema } from '@/lib/chat/schema-init';
@@ -113,55 +113,54 @@ export async function POST(req: Request): Promise<Response> {
       const send = (obj: unknown) =>
         controller.enqueue(encoder.encode(JSON.stringify(obj) + '\n'));
       let assistantText = '';
+      let usageMeta: { promptTokenCount?: number; candidatesTokenCount?: number } | undefined;
       try {
-        const messageStream = anthropicClient.messages.stream(
-          {
-            model: 'claude-haiku-4-5',
-            max_tokens: MAX_TOKENS,
-            system: [
-              {
-                type: 'text',
-                text: SYSTEM_PROMPT_VN,
-                cache_control: { type: 'ephemeral' }, // D-04 prompt caching
-              },
-            ],
-            messages: [
-              ...historyForApi,
-              {
-                role: 'user',
-                content: [
-                  {
-                    type: 'text',
-                    text: userBlock,
-                    cache_control: { type: 'ephemeral' }, // D-04
-                  },
-                ],
-              },
-            ],
-          },
-          { signal: abortController.signal },
-        );
+        // Gemini contents: history + user block. Vai trò Gemini là 'user'/'model'
+        // (KHÔNG phải 'assistant'); mỗi turn là { role, parts: [{ text }] }.
+        const contents = [
+          ...historyForApi.map((h) => ({
+            role: h.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: h.content }],
+          })),
+          { role: 'user', parts: [{ text: userBlock }] },
+        ];
 
-        for await (const event of messageStream) {
-          if (
-            event.type === 'content_block_delta' &&
-            event.delta.type === 'text_delta'
-          ) {
-            assistantText += event.delta.text;
-            send({ type: 'delta', text: event.delta.text });
+        const geminiStream = await geminiClient.models.generateContentStream({
+          model: GEMINI_CHAT_MODEL,
+          contents,
+          config: {
+            // system prompt đặt ở systemInstruction (riêng, không nằm trong contents).
+            systemInstruction: SYSTEM_PROMPT_VN,
+            maxOutputTokens: MAX_TOKENS,
+            abortSignal: abortController.signal,
+          },
+        });
+
+        for await (const chunk of geminiStream) {
+          const text = chunk.text;
+          if (text) {
+            assistantText += text;
+            send({ type: 'delta', text });
           }
+          // usageMetadata xuất hiện ở chunk cuối — giữ lại để log.
+          if (chunk.usageMetadata) usageMeta = chunk.usageMetadata;
         }
 
-        const finalMessage = await messageStream.finalMessage();
         await appendAssistantMessage(sessionIdNum, assistantText);
         await touchSession(sessionIdNum);
         console.log(
-          `[chat] session=${sessionIdNum} usage input=${finalMessage.usage.input_tokens} ` +
-            `cache_read=${finalMessage.usage.cache_read_input_tokens ?? 0} ` +
-            `cache_write=${finalMessage.usage.cache_creation_input_tokens ?? 0} ` +
-            `output=${finalMessage.usage.output_tokens}`,
+          `[chat] session=${sessionIdNum} model=${GEMINI_CHAT_MODEL} ` +
+            `input=${usageMeta?.promptTokenCount ?? '?'} ` +
+            `output=${usageMeta?.candidatesTokenCount ?? '?'}`,
         );
-        send({ type: 'done', sessionId: sessionIdNum, usage: finalMessage.usage });
+        send({
+          type: 'done',
+          sessionId: sessionIdNum,
+          usage: {
+            input_tokens: usageMeta?.promptTokenCount ?? 0,
+            output_tokens: usageMeta?.candidatesTokenCount ?? 0,
+          },
+        });
         controller.close();
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'stream_failed';
