@@ -12,8 +12,9 @@ import { normalizeVn } from './vn-text';
  */
 export type Intent = 'PRODUCT' | 'CHITCHAT' | 'POLICY' | 'ORDER';
 
-/** Model phân loại — flash-lite rẻ/nhanh; chỉ cần trả 1 từ. */
-const INTENT_MODEL = 'gemini-2.5-flash-lite';
+// Model phân loại — flash-lite-latest (alias) rẻ/nhanh; chỉ cần trả 1 từ. Dùng
+// alias -latest (không phải bản cố định 2.5) để tránh giới hạn free 20 req/ngày.
+const INTENT_MODEL = 'gemini-flash-lite-latest';
 
 /** Bật/tắt tầng 2 (gọi Gemini). Tắt → chỉ rule, mặc định PRODUCT. */
 const USE_LLM_FALLBACK = true;
