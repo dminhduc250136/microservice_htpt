@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { fetchCustomerSegments, type CustomerSegments } from '@/services/charts';
+import { fetchCustomerSegments, type CustomerSegments, type SegmentGroup } from '@/services/charts';
+import Modal from '@/components/ui/Modal/Modal';
 import styles from './CustomerSegmentsPanel.module.css';
 
 // Màu nhãn theo nhóm (giá trị cao → ấm/đậm).
@@ -27,6 +28,7 @@ function formatVnd(n: number): string {
 export function CustomerSegmentsPanel() {
   const [data, setData] = useState<CustomerSegments | null>(null);
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [selected, setSelected] = useState<SegmentGroup | null>(null); // nhóm đang xem chi tiết
 
   useEffect(() => {
     let cancelled = false;
@@ -72,7 +74,14 @@ export function CustomerSegmentsPanel() {
           const pct = Math.round((s.customerCount / data.totalCustomers) * 100);
           const color = SEGMENT_COLOR[s.name] ?? '#6b7280';
           return (
-            <div key={s.name} className={styles.card} style={{ borderTopColor: color }}>
+            <button
+              key={s.name}
+              type="button"
+              className={styles.card}
+              style={{ borderTopColor: color }}
+              onClick={() => setSelected(s)}
+              title="Bấm để xem danh sách khách trong nhóm"
+            >
               <div className={styles.cardHead}>
                 <span className={styles.dot} style={{ background: color }} />
                 <span className={styles.name}>{s.name}</span>
@@ -82,7 +91,8 @@ export function CustomerSegmentsPanel() {
               </div>
               <div className={styles.revenue}>Doanh thu: {formatVnd(s.totalRevenue)}đ</div>
               <p className={styles.desc}>{s.description}</p>
-            </div>
+              <span className={styles.viewMore}>Xem chi tiết →</span>
+            </button>
           );
         })}
       </div>
@@ -90,6 +100,43 @@ export function CustomerSegmentsPanel() {
       <p className={styles.note}>
         RFM = Recency (mua gần đây) · Frequency (số lần mua) · Monetary (chi tiêu). Tính từ đơn đã giao.
       </p>
+
+      {selected && (
+        <Modal
+          open
+          onClose={() => setSelected(null)}
+          title={`Nhóm: ${selected.name} (${selected.customerCount} khách)`}
+          primaryAction={{ label: 'Đóng', onClick: () => setSelected(null) }}
+        >
+          <p className={styles.modalDesc}>{selected.description}</p>
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Khách</th>
+                  <th>Lần cuối mua</th>
+                  <th>Số đơn</th>
+                  <th>Chi tiêu</th>
+                  <th>RFM</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selected.members.map((m) => (
+                  <tr key={m.userId}>
+                    <td className={styles.userId}>{m.userId}</td>
+                    <td>{m.recencyDays} ngày trước</td>
+                    <td>{m.frequency}</td>
+                    <td>{formatVnd(m.monetary)}đ</td>
+                    <td className={styles.rfm}>
+                      {m.rScore}/{m.fScore}/{m.mScore}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

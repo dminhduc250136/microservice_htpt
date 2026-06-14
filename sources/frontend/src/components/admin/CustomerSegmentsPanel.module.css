@@ -37,6 +37,65 @@
   border-radius: 10px;
   padding: 12px 14px;
   background: #fbfcfe;
+  /* clickable button reset */
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  transition: box-shadow 0.15s ease, transform 0.1s ease;
+}
+.card:hover {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.viewMore {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #4f46e5;
+}
+
+/* Modal nội dung */
+.modalDesc {
+  margin: 0 0 14px;
+  font-size: 0.9rem;
+  color: #5a6276;
+}
+.tableWrap {
+  overflow-x: auto;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.table th,
+.table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #eceff4;
+  text-align: left;
+  white-space: nowrap;
+}
+.table th {
+  color: #6b7280;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  background: #fff;
+}
+.userId {
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: #3a4252;
+}
+.rfm {
+  font-family: monospace;
+  color: #4f46e5;
+  font-weight: 600;
 }
 
 .cardHead {

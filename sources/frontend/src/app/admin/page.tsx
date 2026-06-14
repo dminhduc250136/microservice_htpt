@@ -18,6 +18,8 @@ import { UserSignupsChart } from '@/components/admin/UserSignupsChart';
 import { LowStockSection } from '@/components/admin/LowStockSection';
 import { InsightsPanel } from '@/components/admin/InsightsPanel';
 import { CustomerSegmentsPanel } from '@/components/admin/CustomerSegmentsPanel';
+import { RevenueDetailModal } from '@/components/admin/RevenueDetailModal';
+import { DetailListModal, type DetailKind } from '@/components/admin/DetailListModal';
 import {
   fetchRevenueChart,
   fetchTopProducts,
@@ -76,6 +78,8 @@ export default function AdminDashboard() {
   const [productCard, setProductCard] = useState<KpiCardState<ProductStats>>({ status: 'loading' });
   const [orderCard, setOrderCard] = useState<KpiCardState<OrderStats>>({ status: 'loading' });
   const [userCard, setUserCard] = useState<KpiCardState<UserStats>>({ status: 'loading' });
+  const [showRevenueDetail, setShowRevenueDetail] = useState(false); // modal chi tiết doanh thu
+  const [detailKind, setDetailKind] = useState<DetailKind | null>(null); // modal danh sách
 
   const loadProduct = useCallback(async () => {
     setProductCard({ status: 'loading' });
@@ -200,6 +204,7 @@ export default function AdminDashboard() {
           state={orderCard}
           renderValue={(d) => formatVndCompact(d.revenue)}
           onRetry={loadOrder}
+          onClick={() => setShowRevenueDetail(true)}
         />
         <KpiCard
           label="Đơn hàng"
@@ -208,6 +213,7 @@ export default function AdminDashboard() {
           state={orderCard}
           renderValue={(d) => String(d.totalOrders)}
           onRetry={loadOrder}
+          onClick={() => setDetailKind('orders')}
         />
         <KpiCard
           label="Giá trị đơn TB"
@@ -224,6 +230,7 @@ export default function AdminDashboard() {
           state={userCard}
           renderValue={(d) => String(d.totalUsers)}
           onRetry={loadUser}
+          onClick={() => setDetailKind('users')}
         />
         <KpiCard
           label="Đơn chờ xử lý"
@@ -232,6 +239,7 @@ export default function AdminDashboard() {
           state={orderCard}
           renderValue={(d) => String(d.pendingOrders)}
           onRetry={loadOrder}
+          onClick={() => setDetailKind('pending')}
         />
         <KpiCard
           label="Sản phẩm mới"
@@ -240,6 +248,7 @@ export default function AdminDashboard() {
           state={productCard}
           renderValue={(d) => String(d.totalProducts)}
           onRetry={loadProduct}
+          onClick={() => setDetailKind('products')}
         />
       </div>
 
@@ -322,6 +331,16 @@ export default function AdminDashboard() {
         renderChart={(d) => <LowStockSection data={d} />}
         onRetry={loadLowStock}
       />
+
+      {/* Modal chi tiết doanh thu (bấm thẻ Doanh thu) */}
+      {showRevenueDetail && (
+        <RevenueDetailModal window={statsWindow} onClose={() => setShowRevenueDetail(false)} />
+      )}
+
+      {/* Modal danh sách (đơn / khách mới / SP mới) */}
+      {detailKind && (
+        <DetailListModal kind={detailKind} window={statsWindow} onClose={() => setDetailKind(null)} />
+      )}
     </div>
   );
 }
@@ -333,11 +352,21 @@ interface KpiCardProps<T> {
   state: KpiCardState<T>;
   renderValue: (d: T) => string;
   onRetry: () => void;
+  onClick?: () => void; // có → card bấm được (mở modal chi tiết)
 }
 
-function KpiCard<T>({ label, icon, color, state, renderValue, onRetry }: KpiCardProps<T>) {
+function KpiCard<T>({ label, icon, color, state, renderValue, onRetry, onClick }: KpiCardProps<T>) {
+  const clickable = !!onClick && state.status === 'success';
   return (
-    <div className={styles.statCard} data-card-label={label}>
+    <div
+      className={`${styles.statCard}${clickable ? ' ' + styles.statCardClickable : ''}`}
+      data-card-label={label}
+      onClick={clickable ? onClick : undefined}
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={clickable ? (e) => { if (e.key === 'Enter') onClick!(); } : undefined}
+      title={clickable ? 'Bấm để xem chi tiết' : undefined}
+    >
       <div className={styles.statIcon}>{icon}</div>
       <div className={styles.statBody}>
         {state.status === 'loading' && (
@@ -352,13 +381,14 @@ function KpiCard<T>({ label, icon, color, state, renderValue, onRetry }: KpiCard
             <button
               type="button"
               className={styles.retryBtn}
-              onClick={onRetry}
+              onClick={(e) => { e.stopPropagation(); onRetry(); }}
               aria-label={`Tải lại ${label}`}
               title={state.error}
             >⟳</button>
           </div>
         )}
         <p className={styles.statLabel}>{label}</p>
+        {clickable && <span className={styles.statMore}>Xem chi tiết →</span>}
       </div>
     </div>
   );

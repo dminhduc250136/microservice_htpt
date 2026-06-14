@@ -207,4 +207,31 @@ public interface OrderRepository extends JpaRepository<OrderEntity, String> {
         AND (cast(:to as timestamp) IS NULL OR o.createdAt <= :to)
       """)
   long deliveredCountInRange(@Param("from") Instant from, @Param("to") Instant to);
+
+  /**
+   * Doanh thu + số đơn theo TỪNG trạng thái trong [from, to] (cho modal chi tiết doanh thu).
+   * @return {@code [String status, long count, BigDecimal sumTotal]}.
+   */
+  @Query("""
+      SELECT o.status, COUNT(o), COALESCE(SUM(o.total), 0) FROM OrderEntity o
+      WHERE (cast(:from as timestamp) IS NULL OR o.createdAt >= :from)
+        AND (cast(:to as timestamp) IS NULL OR o.createdAt <= :to)
+      GROUP BY o.status
+      """)
+  List<Object[]> revenueByStatusInRange(@Param("from") Instant from, @Param("to") Instant to);
+
+  /**
+   * Đơn trong [from, to], optional status filter — cho modal danh sách đơn.
+   * status null/blank → mọi trạng thái. Sắp createdAt giảm dần.
+   */
+  @Query("""
+      SELECT o FROM OrderEntity o
+      WHERE (cast(:status as string) IS NULL OR o.status = :status)
+        AND (cast(:from as timestamp) IS NULL OR o.createdAt >= :from)
+        AND (cast(:to as timestamp) IS NULL OR o.createdAt <= :to)
+      ORDER BY o.createdAt DESC
+      """)
+  List<OrderEntity> findInRange(@Param("status") String status,
+                                @Param("from") Instant from, @Param("to") Instant to,
+                                Pageable limit);
 }

@@ -123,6 +123,16 @@ public interface ProductRepository extends JpaRepository<ProductEntity, String> 
       """)
   long countInRange(@Param("from") java.time.Instant from, @Param("to") java.time.Instant to);
 
+  /** Danh sách SP tạo trong [from, to], mới nhất trước (modal "Sản phẩm mới"). */
+  @Query("""
+      SELECT p FROM ProductEntity p
+      WHERE (cast(:from as timestamp) IS NULL OR p.createdAt >= :from)
+        AND (cast(:to as timestamp) IS NULL OR p.createdAt <= :to)
+      ORDER BY p.createdAt DESC
+      """)
+  List<ProductEntity> findInRange(@Param("from") java.time.Instant from,
+                                  @Param("to") java.time.Instant to, Pageable limit);
+
   /**
    * Vector search (semantic RAG) — Đợt 1 AI. Trả về id của top-K sản phẩm GẦN NGHĨA
    * nhất với câu hỏi (đã embed thành vector 768 chiều), theo cosine distance.

@@ -48,6 +48,18 @@ public class AdminStatsController {
     return ApiResponse.of(200, "User stats", Map.of("totalUsers", total));
   }
 
+  /** Danh sách khách đăng ký trong [from, to] (modal "Khách mới"). */
+  @GetMapping("/recent-list")
+  public ApiResponse<Object> recentList(
+      @RequestParam(value = "from", required = false) String from,
+      @RequestParam(value = "to", required = false) String to,
+      @RequestParam(value = "limit", defaultValue = "100") int limit,
+      @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader) {
+    jwtRoleGuard.requireAdmin(authHeader);
+    return ApiResponse.of(200, "Recent users",
+        java.util.Map.of("users", statsService.usersInRange(parseFrom(from), parseTo(to), limit)));
+  }
+
   private static Instant parseFrom(String date) {
     if (date == null || date.isBlank()) {
       return null;
