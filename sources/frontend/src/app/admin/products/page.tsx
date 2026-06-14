@@ -70,9 +70,9 @@ function AdminProductsPageContent() {
       : 10;
   const size = pageSize === 'all' ? 1000 : pageSize;
   const search = get('q') ?? '';
+  const [searchInput, setSearchInput] = useState(search);
   const setPage = (p: number) => patch({ page: p });
   const setPageSize = (s: PageSize) => patch({ size: s, page: 0 });
-  const setSearch = (v: string) => patch({ q: v, page: 0 });
   const [meta, setMeta] = useState<{ totalElements: number; totalPages: number } | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
@@ -86,6 +86,19 @@ function AdminProductsPageContent() {
   const [specRows, setSpecRows] = useState<SpecRow[]>([]);
   const [uploading, setUploading] = useState(false);
   const { showToast } = useToast();
+
+  useEffect(() => {
+    setSearchInput(search);
+  }, [search]);
+
+  useEffect(() => {
+    if (searchInput === search) return;
+    const timer = window.setTimeout(() => {
+      patch({ q: searchInput, page: 0 });
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [patch, search, searchInput]);
 
   const parseSpecs = (raw: unknown): SpecRow[] => {
     if (!raw) return [];
@@ -256,8 +269,8 @@ function AdminProductsPageContent() {
       <div className={styles.toolbar}>
         <Input
           placeholder="Tìm sản phẩm..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
+          value={searchInput}
+          onChange={e => setSearchInput(e.target.value)}
           icon={
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
