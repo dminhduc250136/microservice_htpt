@@ -35,9 +35,11 @@ public class AdminProductController {
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "20") int size,
       @RequestParam(defaultValue = "updatedAt,desc") String sort,
-      @RequestParam(defaultValue = "true") boolean includeDeleted
+      @RequestParam(defaultValue = "true") boolean includeDeleted,
+      @RequestParam(required = false) String keyword
   ) {
-    return ApiResponse.of(200, "Admin products listed", productCrudService.listProducts(page, size, sort, includeDeleted));
+    return ApiResponse.of(200, "Admin products listed",
+        productCrudService.listProducts(page, size, sort, includeDeleted, keyword));
   }
 
   @PostMapping
