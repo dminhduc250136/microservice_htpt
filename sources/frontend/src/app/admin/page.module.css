@@ -7,6 +7,10 @@
 .statIcon { font-size: 2rem; }
 .statValue { font-size: var(--text-title-lg); font-weight: var(--weight-bold); }
 .statLabel { font-size: var(--text-body-sm); color: var(--on-surface-variant); margin-top: 2px; }
+.statCardClickable { cursor: pointer; transition: box-shadow 0.15s ease, transform 0.1s ease; }
+.statCardClickable:hover { box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1); transform: translateY(-1px); }
+.statCardClickable:focus-visible { outline: 2px solid var(--primary, #6750a4); outline-offset: 2px; }
+.statMore { display: block; margin-top: 4px; font-size: 0.72rem; font-weight: 600; color: var(--primary, #6750a4); }
 
 /* Per-card state */
 .statBody { display: flex; flex-direction: column; gap: var(--space-1); }

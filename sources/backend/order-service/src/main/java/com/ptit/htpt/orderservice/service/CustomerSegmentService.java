@@ -82,7 +82,13 @@ public class CustomerSegmentService {
       }
       BigDecimal totalRevenue = members.stream()
           .map(c -> c.monetary).reduce(BigDecimal.ZERO, BigDecimal::add);
-      groups.add(new SegmentGroup(name, SEGMENT_DESC.get(name), members.size(), totalRevenue));
+      // Chi tiết thành viên: sắp theo monetary giảm dần (khách giá trị cao lên đầu).
+      List<MemberDetail> details = members.stream()
+          .sorted(Comparator.comparing((Customer c) -> c.monetary).reversed())
+          .map(c -> new MemberDetail(c.userId, c.recency, c.frequency, c.monetary,
+              c.rScore, c.fScore, c.mScore))
+          .toList();
+      groups.add(new SegmentGroup(name, SEGMENT_DESC.get(name), members.size(), totalRevenue, details));
     }
 
     return new SegmentResult(n, groups);
@@ -145,7 +151,12 @@ public class CustomerSegmentService {
       "Nguy cơ rời bỏ", "Từng mua tốt nhưng lâu chưa quay lại — gửi ưu đãi 'win-back'.",
       "Đã ngủ đông", "Rất lâu không mua, giá trị thấp — chiến dịch tái kích hoạt chi phí thấp.");
 
-  public record SegmentGroup(String name, String description, int customerCount, BigDecimal totalRevenue) {}
+  /** Chi tiết 1 khách trong nhóm: RFM thô + điểm. */
+  public record MemberDetail(String userId, int recencyDays, long frequency, BigDecimal monetary,
+                             int rScore, int fScore, int mScore) {}
+
+  public record SegmentGroup(String name, String description, int customerCount,
+                             BigDecimal totalRevenue, List<MemberDetail> members) {}
 
   public record SegmentResult(int totalCustomers, List<SegmentGroup> segments) {}
 }

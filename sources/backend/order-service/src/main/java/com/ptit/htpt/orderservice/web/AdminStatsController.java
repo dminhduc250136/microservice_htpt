@@ -55,6 +55,30 @@ public class AdminStatsController {
     return ApiResponse.of(200, "Order stats", body);
   }
 
+  /** Chi tiết doanh thu: breakdown theo trạng thái trong [from, to]. */
+  @GetMapping("/revenue-detail")
+  public ApiResponse<Object> revenueDetail(
+      @RequestParam(value = "from", required = false) String from,
+      @RequestParam(value = "to", required = false) String to,
+      @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader) {
+    jwtRoleGuard.requireAdmin(authHeader);
+    return ApiResponse.of(200, "Revenue detail",
+        Map.of("byStatus", statsService.revenueByStatus(parseFrom(from), parseTo(to))));
+  }
+
+  /** Danh sách đơn trong [from, to], optional status (modal chi tiết đơn hàng). */
+  @GetMapping("/orders-list")
+  public ApiResponse<Object> ordersList(
+      @RequestParam(value = "from", required = false) String from,
+      @RequestParam(value = "to", required = false) String to,
+      @RequestParam(value = "status", required = false) String status,
+      @RequestParam(value = "limit", defaultValue = "100") int limit,
+      @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader) {
+    jwtRoleGuard.requireAdmin(authHeader);
+    return ApiResponse.of(200, "Orders in range",
+        Map.of("orders", statsService.ordersInRange(status, parseFrom(from), parseTo(to), limit)));
+  }
+
   private static Instant parseFrom(String date) {
     if (date == null || date.isBlank()) {
       return null;

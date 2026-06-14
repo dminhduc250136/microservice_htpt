@@ -1,8 +1,12 @@
 package com.ptit.htpt.orderservice.service;
 
+import com.ptit.htpt.orderservice.domain.OrderEntity;
 import com.ptit.htpt.orderservice.repository.OrderRepository;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -63,4 +67,34 @@ public class OrderStatsService {
     }
     return revenue(from, to).divide(BigDecimal.valueOf(delivered), 0, java.math.RoundingMode.HALF_UP);
   }
+
+  /** Doanh thu + số đơn theo từng trạng thái trong [from, to] (modal chi tiết doanh thu). */
+  @Transactional(readOnly = true)
+  public List<StatusBreakdown> revenueByStatus(Instant from, Instant to) {
+    List<StatusBreakdown> out = new ArrayList<>();
+    for (Object[] r : orderRepo.revenueByStatusInRange(from, to)) {
+      out.add(new StatusBreakdown(
+          (String) r[0],
+          ((Number) r[1]).longValue(),
+          r[2] != null ? (BigDecimal) r[2] : BigDecimal.ZERO));
+    }
+    return out;
+  }
+
+  /** Danh sách đơn trong [from, to] (+ optional status) cho modal chi tiết. Cap limit. */
+  @Transactional(readOnly = true)
+  public List<OrderRow> ordersInRange(String status, Instant from, Instant to, int limit) {
+    String s = (status == null || status.isBlank()) ? null : status;
+    int cap = limit <= 0 ? 100 : Math.min(limit, 500);
+    List<OrderRow> rows = new ArrayList<>();
+    for (OrderEntity o : orderRepo.findInRange(s, from, to, PageRequest.of(0, cap))) {
+      rows.add(new OrderRow(o.id(), o.userId(), o.total(), o.status(), o.createdAt()));
+    }
+    return rows;
+  }
+
+  public record StatusBreakdown(String status, long count, BigDecimal revenue) {}
+
+  public record OrderRow(String id, String userId, BigDecimal total, String status,
+                         java.time.Instant createdAt) {}
 }

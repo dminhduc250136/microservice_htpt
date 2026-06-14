@@ -71,12 +71,24 @@ export const fetchUserSignups = (w: TimeWindow) =>
 export const fetchLowStock = () =>
   httpGet<LowStockItem[]>(`/api/products/admin/charts/low-stock`);
 
+/** 1 khách trong nhóm RFM (chi tiết). */
+export interface SegmentMember {
+  userId: string;
+  recencyDays: number;
+  frequency: number;
+  monetary: number;
+  rScore: number;
+  fScore: number;
+  mScore: number;
+}
+
 /** Phân khúc khách hàng RFM (DSS admin). */
 export interface SegmentGroup {
   name: string;
   description: string;
   customerCount: number;
   totalRevenue: number;
+  members: SegmentMember[];
 }
 export interface CustomerSegments {
   totalCustomers: number;
