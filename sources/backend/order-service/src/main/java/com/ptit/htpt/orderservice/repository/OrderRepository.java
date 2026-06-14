@@ -171,4 +171,40 @@ public interface OrderRepository extends JpaRepository<OrderEntity, String> {
       LIMIT :limit
       """, nativeQuery = true)
   List<Object[]> recommendForUser(@Param("userId") String userId, @Param("limit") int limit);
+
+  /** Đếm đơn tạo trong [from, to] (nullable → bỏ giới hạn tương ứng). KPI theo time. */
+  @Query("""
+      SELECT COUNT(o) FROM OrderEntity o
+      WHERE (cast(:from as timestamp) IS NULL OR o.createdAt >= :from)
+        AND (cast(:to as timestamp) IS NULL OR o.createdAt <= :to)
+      """)
+  long countInRange(@Param("from") Instant from, @Param("to") Instant to);
+
+  /** Đếm đơn theo status, tạo trong [from, to]. */
+  @Query("""
+      SELECT COUNT(o) FROM OrderEntity o
+      WHERE o.status = :status
+        AND (cast(:from as timestamp) IS NULL OR o.createdAt >= :from)
+        AND (cast(:to as timestamp) IS NULL OR o.createdAt <= :to)
+      """)
+  long countByStatusInRange(@Param("status") String status,
+                            @Param("from") Instant from, @Param("to") Instant to);
+
+  /** Tổng doanh thu (đơn DELIVERED) trong [from, to]. 0 nếu không có. */
+  @Query("""
+      SELECT COALESCE(SUM(o.total), 0) FROM OrderEntity o
+      WHERE o.status = 'DELIVERED'
+        AND (cast(:from as timestamp) IS NULL OR o.createdAt >= :from)
+        AND (cast(:to as timestamp) IS NULL OR o.createdAt <= :to)
+      """)
+  java.math.BigDecimal revenueInRange(@Param("from") Instant from, @Param("to") Instant to);
+
+  /** Số đơn DELIVERED trong [from, to] — để tính AOV (doanh thu / số đơn). */
+  @Query("""
+      SELECT COUNT(o) FROM OrderEntity o
+      WHERE o.status = 'DELIVERED'
+        AND (cast(:from as timestamp) IS NULL OR o.createdAt >= :from)
+        AND (cast(:to as timestamp) IS NULL OR o.createdAt <= :to)
+      """)
+  long deliveredCountInRange(@Param("from") Instant from, @Param("to") Instant to);
 }

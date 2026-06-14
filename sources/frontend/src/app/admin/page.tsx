@@ -35,6 +35,13 @@ import {
 
 type KpiCardState<T> = { status: 'loading' | 'success' | 'error'; data?: T; error?: string };
 
+/** Format VND gọn: 1.2 tỷ / 340 tr / 12.500 ₫ */
+function formatVndCompact(n: number): string {
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)} tỷ`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)} tr`;
+  return `${Math.round(n).toLocaleString('vi-VN')} ₫`;
+}
+
 /**
  * Phase 9 / Plan 09-04 (UI-02). Trimmed dashboard:
  * - D-08: chỉ 4 KPI required, xóa totalRevenue/recent orders table/quick stats panel/mock arrays.
@@ -47,6 +54,25 @@ type KpiCardState<T> = { status: 'loading' | 'success' | 'error'; data?: T; erro
  * - D-14: Promise.allSettled per-chart, ChartCard 3-state wrapper.
  */
 export default function AdminDashboard() {
+  // === Time window (đặt TRÊN để KPI cards cũng lọc theo) ===
+  const [range, setRange] = useState<Range>('30d'); // D-06 default
+  // Đợt 4: custom date range (chỉ dùng khi range='custom').
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
+
+  // Quy đổi range/custom → {from,to} ngày thật (yyyy-MM-dd) cho KPI stats.
+  // range cố định (7d/30d/90d) → tính ngày lùi; 'all' → không giới hạn; custom → from/to.
+  const statsWindow: TimeWindow = useMemo(() => {
+    if (range === 'custom') return { range, from: customFrom, to: customTo };
+    if (range === 'all') return { range };
+    const days = range === '7d' ? 7 : range === '90d' ? 90 : 30;
+    const toDate = new Date();
+    const fromDate = new Date();
+    fromDate.setDate(fromDate.getDate() - (days - 1));
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    return { range: 'custom', from: iso(fromDate), to: iso(toDate) };
+  }, [range, customFrom, customTo]);
+
   const [productCard, setProductCard] = useState<KpiCardState<ProductStats>>({ status: 'loading' });
   const [orderCard, setOrderCard] = useState<KpiCardState<OrderStats>>({ status: 'loading' });
   const [userCard, setUserCard] = useState<KpiCardState<UserStats>>({ status: 'loading' });
@@ -54,32 +80,32 @@ export default function AdminDashboard() {
   const loadProduct = useCallback(async () => {
     setProductCard({ status: 'loading' });
     try {
-      const data = await fetchProductStats();
+      const data = await fetchProductStats(statsWindow);
       setProductCard({ status: 'success', data });
     } catch (e) {
       setProductCard({ status: 'error', error: (e as Error).message ?? 'Không tải được' });
     }
-  }, []);
+  }, [statsWindow]);
 
   const loadOrder = useCallback(async () => {
     setOrderCard({ status: 'loading' });
     try {
-      const data = await fetchOrderStats();
+      const data = await fetchOrderStats(statsWindow);
       setOrderCard({ status: 'success', data });
     } catch (e) {
       setOrderCard({ status: 'error', error: (e as Error).message ?? 'Không tải được' });
     }
-  }, []);
+  }, [statsWindow]);
 
   const loadUser = useCallback(async () => {
     setUserCard({ status: 'loading' });
     try {
-      const data = await fetchUserStats();
+      const data = await fetchUserStats(statsWindow);
       setUserCard({ status: 'success', data });
     } catch (e) {
       setUserCard({ status: 'error', error: (e as Error).message ?? 'Không tải được' });
     }
-  }, []);
+  }, [statsWindow]);
 
   useEffect(() => {
     // D-09: Promise.allSettled — không await trong useEffect cleanup
@@ -87,11 +113,7 @@ export default function AdminDashboard() {
   }, [loadProduct, loadOrder, loadUser]);
 
   // === Phase 19 Plan 19-04: charts state ===
-  const [range, setRange] = useState<Range>('30d'); // D-06 default
-  // Đợt 4: custom date range (chỉ dùng khi range='custom').
-  const [customFrom, setCustomFrom] = useState('');
-  const [customTo, setCustomTo] = useState('');
-  // TimeWindow gửi xuống fetch: range cố định, hoặc custom from/to.
+  // TimeWindow gửi xuống chart fetch: range cố định, hoặc custom from/to.
   const timeWindow: TimeWindow = useMemo(
     () => (range === 'custom' ? { range, from: customFrom, to: customTo } : { range }),
     [range, customFrom, customTo],
@@ -172,15 +194,15 @@ export default function AdminDashboard() {
       <h1 className={styles.title}>Dashboard</h1>
       <div className={styles.statsGrid}>
         <KpiCard
-          label="Sản phẩm"
-          icon="🏷️"
-          color="var(--secondary)"
-          state={productCard}
-          renderValue={(d) => String(d.totalProducts)}
-          onRetry={loadProduct}
+          label="Doanh thu"
+          icon="💰"
+          color="#16a34a"
+          state={orderCard}
+          renderValue={(d) => formatVndCompact(d.revenue)}
+          onRetry={loadOrder}
         />
         <KpiCard
-          label="Tổng đơn hàng"
+          label="Đơn hàng"
           icon="📦"
           color="var(--primary)"
           state={orderCard}
@@ -188,7 +210,15 @@ export default function AdminDashboard() {
           onRetry={loadOrder}
         />
         <KpiCard
-          label="Khách hàng"
+          label="Giá trị đơn TB"
+          icon="🧾"
+          color="#0891b2"
+          state={orderCard}
+          renderValue={(d) => formatVndCompact(d.averageOrderValue)}
+          onRetry={loadOrder}
+        />
+        <KpiCard
+          label="Khách mới"
           icon="👥"
           color="#f59e0b"
           state={userCard}
@@ -202,6 +232,14 @@ export default function AdminDashboard() {
           state={orderCard}
           renderValue={(d) => String(d.pendingOrders)}
           onRetry={loadOrder}
+        />
+        <KpiCard
+          label="Sản phẩm mới"
+          icon="🏷️"
+          color="var(--secondary)"
+          state={productCard}
+          renderValue={(d) => String(d.totalProducts)}
+          onRetry={loadProduct}
         />
       </div>
 
