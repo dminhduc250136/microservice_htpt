@@ -33,4 +33,12 @@ public interface UserRepository extends JpaRepository<UserEntity, String> {
       ORDER BY day ASC
       """)
   List<Object[]> aggregateSignupsByDay(@Param("from") Instant from, @Param("to") Instant to);
+
+  /** Đếm user đăng ký trong [from, to] (nullable = bỏ giới hạn). KPI dashboard theo time. */
+  @Query("""
+      SELECT COUNT(u) FROM UserEntity u
+      WHERE (cast(:from as timestamp) IS NULL OR u.createdAt >= :from)
+        AND (cast(:to as timestamp) IS NULL OR u.createdAt <= :to)
+      """)
+  long countInRange(@Param("from") Instant from, @Param("to") Instant to);
 }

@@ -115,6 +115,14 @@ public interface ProductRepository extends JpaRepository<ProductEntity, String> 
   @Query("SELECT p FROM ProductEntity p WHERE p.stock < :threshold ORDER BY p.stock ASC")
   List<ProductEntity> findLowStock(@Param("threshold") int threshold, Pageable cap);
 
+  /** Đếm SP tạo trong [from, to] (nullable = bỏ giới hạn). KPI dashboard theo time. */
+  @Query("""
+      SELECT COUNT(p) FROM ProductEntity p
+      WHERE (cast(:from as timestamp) IS NULL OR p.createdAt >= :from)
+        AND (cast(:to as timestamp) IS NULL OR p.createdAt <= :to)
+      """)
+  long countInRange(@Param("from") java.time.Instant from, @Param("to") java.time.Instant to);
+
   /**
    * Vector search (semantic RAG) — Đợt 1 AI. Trả về id của top-K sản phẩm GẦN NGHĨA
    * nhất với câu hỏi (đã embed thành vector 768 chiều), theo cosine distance.

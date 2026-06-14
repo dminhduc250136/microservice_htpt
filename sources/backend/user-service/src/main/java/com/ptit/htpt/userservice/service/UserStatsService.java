@@ -21,4 +21,10 @@ public class UserStatsService {
   public long totalUsers() {
     return userRepo.count();
   }
+
+  /** Số user đăng ký trong [from, to] (null = toàn bộ). */
+  @Transactional(readOnly = true)
+  public long totalUsers(java.time.Instant from, java.time.Instant to) {
+    return userRepo.countInRange(from, to);
+  }
 }

@@ -21,4 +21,10 @@ public class ProductStatsService {
   public long totalProducts() {
     return productRepo.count();
   }
+
+  /** Số SP tạo trong [from, to] (null = toàn bộ). */
+  @Transactional(readOnly = true)
+  public long totalProducts(java.time.Instant from, java.time.Instant to) {
+    return productRepo.countInRange(from, to);
+  }
 }
