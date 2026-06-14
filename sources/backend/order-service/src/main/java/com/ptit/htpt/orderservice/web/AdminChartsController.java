@@ -1,6 +1,8 @@
 package com.ptit.htpt.orderservice.web;
 
 import com.ptit.htpt.orderservice.api.ApiResponse;
+import com.ptit.htpt.orderservice.service.CustomerSegmentService;
+import com.ptit.htpt.orderservice.service.CustomerSegmentService.SegmentResult;
 import com.ptit.htpt.orderservice.service.OrderChartsService;
 import com.ptit.htpt.orderservice.service.OrderChartsService.RevenuePoint;
 import com.ptit.htpt.orderservice.service.OrderChartsService.StatusPoint;
@@ -33,11 +35,23 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminChartsController {
 
   private final OrderChartsService chartsService;
+  private final CustomerSegmentService segmentService;
   private final JwtRoleGuard jwtRoleGuard;
 
-  public AdminChartsController(OrderChartsService chartsService, JwtRoleGuard jwtRoleGuard) {
+  public AdminChartsController(OrderChartsService chartsService,
+                              CustomerSegmentService segmentService,
+                              JwtRoleGuard jwtRoleGuard) {
     this.chartsService = chartsService;
+    this.segmentService = segmentService;
     this.jwtRoleGuard = jwtRoleGuard;
+  }
+
+  /** Phân khúc khách hàng RFM (DSS admin). ADMIN only. */
+  @GetMapping("/customer-segments")
+  public ApiResponse<SegmentResult> customerSegments(
+      @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader) {
+    jwtRoleGuard.requireAdmin(authHeader);
+    return ApiResponse.of(200, "Customer segments (RFM)", segmentService.customerSegments());
   }
 
   @GetMapping("/revenue")

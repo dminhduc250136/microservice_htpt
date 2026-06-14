@@ -108,4 +108,24 @@ public interface OrderRepository extends JpaRepository<OrderEntity, String> {
    */
   @Query("SELECT o.status, COUNT(o) FROM OrderEntity o GROUP BY o.status")
   List<Object[]> aggregateStatusDistribution();
+
+  /**
+   * Phân khúc khách hàng RFM (DSS admin): với mỗi user có đơn DELIVERED, tính
+   *   - recency: số ngày kể từ đơn gần nhất (nhỏ = mua gần đây)
+   *   - frequency: số đơn DELIVERED
+   *   - monetary: tổng tiền đã chi
+   * Native query để dùng số học ngày Postgres (CURRENT_DATE - max(date)).
+   *
+   * @return list of {@code [String userId, int recencyDays, long frequency, BigDecimal monetary]}.
+   */
+  @Query(value = """
+      SELECT user_id,
+             (CURRENT_DATE - MAX(DATE(created_at)))::int AS recency_days,
+             COUNT(*) AS frequency,
+             COALESCE(SUM(total), 0) AS monetary
+      FROM orders
+      WHERE status = 'DELIVERED'
+      GROUP BY user_id
+      """, nativeQuery = true)
+  List<Object[]> aggregateRfm();
 }

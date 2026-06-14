@@ -17,6 +17,7 @@ import { StatusDistributionChart } from '@/components/admin/StatusDistributionCh
 import { UserSignupsChart } from '@/components/admin/UserSignupsChart';
 import { LowStockSection } from '@/components/admin/LowStockSection';
 import { InsightsPanel } from '@/components/admin/InsightsPanel';
+import { CustomerSegmentsPanel } from '@/components/admin/CustomerSegmentsPanel';
 import {
   fetchRevenueChart,
   fetchTopProducts,
@@ -244,6 +245,9 @@ export default function AdminDashboard() {
 
       {/* Đợt 3 DSS: panel AI phân tích + dự báo doanh thu (đồng bộ time window, tự ẩn nếu thiếu data) */}
       <InsightsPanel range={range} from={customFrom} to={customTo} />
+
+      {/* DSS: phân khúc khách hàng RFM (query thuần, không AI) */}
+      <CustomerSegmentsPanel />
 
       {/* D-07: 2x2 charts grid */}
       <div className={styles.chartsGrid}>
