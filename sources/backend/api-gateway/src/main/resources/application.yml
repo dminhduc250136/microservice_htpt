@@ -233,6 +233,8 @@ app:
       - { method: POST, pattern: "/api/products/vector-search" }
       # Danh sách mã giảm giá khả dụng — thông tin công khai, hiển thị gợi ý cho cả guest
       - { method: GET, pattern: "/api/orders/coupons/available" }
+      # Gợi ý "mua X cũng mua Y" — công khai, hiện trên trang chi tiết SP cho mọi khách
+      - { method: GET, pattern: "/api/orders/recommend/co-purchase/**" }
       # Avatar static — <img> không tự kèm Authorization header nên phải public
       - { method: GET, pattern: "/api/users/uploads/**" }
       - { method: OPTIONS, pattern: "/**" }

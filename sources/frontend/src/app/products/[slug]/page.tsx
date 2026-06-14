@@ -15,6 +15,7 @@ import { useToast } from '@/components/ui/Toast/Toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { getProductBySlug, getProductById, listProducts } from '@/services/products';
 import { rankRelatedProducts } from '@/lib/products/rank-related';
+import { fetchCoPurchase } from '@/services/recommend';
 import { addToCart } from '@/services/cart';
 import { CART_QUERY_KEY } from '@/hooks/useCart';
 import { isApiError } from '@/services/errors';
@@ -33,6 +34,8 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  // CF #7.6.6: "Khách mua SP này cũng mua" (item-based, public).
+  const [coPurchase, setCoPurchase] = useState<Product[]>([]);
 
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -74,6 +77,10 @@ export default function ProductDetailPage() {
       } catch {
         setRelatedProducts([]);
       }
+      // CF item-based: "Khách mua SP này cũng mua" (best-effort, ẩn nếu rỗng).
+      fetchCoPurchase(p.id, 4)
+        .then((items) => setCoPurchase(items.filter((x) => x.id !== p.id)))
+        .catch(() => setCoPurchase([]));
     } catch (err) {
       if (isApiError(err) && err.code === 'NOT_FOUND') {
         notFound();
@@ -392,6 +399,20 @@ export default function ProductDetailPage() {
           </div>
         </div>
       </section>
+
+      {/* CF #7.6.6: Khách mua SP này cũng mua (item-based, ẩn nếu rỗng) */}
+      {coPurchase.length > 0 && (
+        <section className={styles.relatedSection}>
+          <div className={styles.container}>
+            <h2 className={styles.relatedTitle}>Khách mua sản phẩm này cũng mua</h2>
+            <div className={styles.relatedGrid}>
+              {coPurchase.map((p) => (
+                <ProductCard key={p.id} product={p} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Related Products */}
       {relatedProducts.length > 0 && (
