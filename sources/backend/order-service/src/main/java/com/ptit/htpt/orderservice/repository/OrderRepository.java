@@ -128,4 +128,47 @@ public interface OrderRepository extends JpaRepository<OrderEntity, String> {
       GROUP BY user_id
       """, nativeQuery = true)
   List<Object[]> aggregateRfm();
+
+  /**
+   * Item-based CF ("Khách mua X cũng mua Y"): với 1 product, tìm các product KHÁC
+   * thường xuất hiện CÙNG ĐƠN, theo số đơn đồng-mua giảm dần.
+   *
+   * <p>Self-join order_items trên cùng order_id; loại chính nó. Mọi đơn (không chỉ
+   * DELIVERED) để có nhiều tín hiệu đồng-mua. Trả {@code [String productId, long cnt]}.
+   */
+  @Query(value = """
+      SELECT b.product_id, COUNT(DISTINCT a.order_id) AS cnt
+      FROM order_items a
+      JOIN order_items b ON a.order_id = b.order_id AND b.product_id <> a.product_id
+      WHERE a.product_id = :productId
+      GROUP BY b.product_id
+      ORDER BY cnt DESC
+      LIMIT :limit
+      """, nativeQuery = true)
+  List<Object[]> coPurchasedWith(@Param("productId") String productId, @Param("limit") int limit);
+
+  /**
+   * User-based CF ("Gợi ý cho bạn"): SP mà những đơn CÓ CHỨA sản phẩm user từng mua
+   * cũng chứa — nhưng user CHƯA mua. Đơn giản: lấy SP user đã mua → tìm SP đồng-mua
+   * với chúng (trừ SP user đã mua), xếp theo tổng tín hiệu đồng-mua.
+   */
+  @Query(value = """
+      SELECT b.product_id, COUNT(*) AS cnt
+      FROM order_items a
+      JOIN order_items b ON a.order_id = b.order_id AND b.product_id <> a.product_id
+      WHERE a.product_id IN (
+        SELECT DISTINCT oi.product_id FROM order_items oi
+        JOIN orders o ON o.id = oi.order_id
+        WHERE o.user_id = :userId
+      )
+      AND b.product_id NOT IN (
+        SELECT DISTINCT oi2.product_id FROM order_items oi2
+        JOIN orders o2 ON o2.id = oi2.order_id
+        WHERE o2.user_id = :userId
+      )
+      GROUP BY b.product_id
+      ORDER BY cnt DESC
+      LIMIT :limit
+      """, nativeQuery = true)
+  List<Object[]> recommendForUser(@Param("userId") String userId, @Param("limit") int limit);
 }

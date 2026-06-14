@@ -9,12 +9,15 @@ import Button from '@/components/ui/Button/Button';
 import RetrySection from '@/components/ui/RetrySection/RetrySection';
 import HeroCarousel from '@/components/ui/HeroCarousel/HeroCarousel';
 import { listProducts, listCategories } from '@/services/products';
+import { fetchRecommendForMe } from '@/services/recommend';
 import type { Product, Category } from '@/types';
 
 export default function Home() {
   const [featured, setFeatured] = useState<Product[]>([]);
   const [latest, setLatest] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  // CF #7.6.6 user-based: "Gợi ý cho bạn" (chỉ khách đã login + có lịch sử mua).
+  const [recommended, setRecommended] = useState<Product[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -54,10 +57,42 @@ export default function Home() {
     load();
   }, [load]);
 
+  // CF user-based: gợi ý theo lịch sử mua (best-effort, ẩn nếu chưa login/không có).
+  useEffect(() => {
+    let cancelled = false;
+    fetchRecommendForMe(8)
+      .then((items) => {
+        if (!cancelled) setRecommended(items);
+      })
+      .catch(() => {
+        if (!cancelled) setRecommended([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <>
       {/* ===== HERO CAROUSEL ===== */}
       <HeroCarousel />
+
+      {/* ===== GỢI Ý CHO BẠN (CF user-based, ẩn nếu chưa login/không có) ===== */}
+      {recommended.length > 0 && (
+        <section className={styles.productsSection}>
+          <div className={styles.container}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Gợi ý cho bạn</h2>
+              <p className={styles.sectionSubtitle}>Dựa trên sản phẩm bạn đã mua</p>
+            </div>
+            <div className={styles.productsGrid}>
+              {recommended.map((p) => (
+                <ProductCard key={p.id} product={p} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ===== CATEGORIES SECTION ===== */}
       {categories.length > 0 && (
