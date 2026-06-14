@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { getAccessToken } from '@/services/token';
 import styles from './InsightsPanel.module.css';
 
@@ -26,67 +26,95 @@ const TREND_ICON: Record<string, string> = {
   'ổn định': '➡️',
 };
 
+// Cache cấp module — nhớ kết quả theo time window trong phiên (đổi range/từ chối
+// gọi lại trừ khi bấm nút). Sống qua remount của dashboard.
+type State = { status: 'success'; data: Insights } | { status: 'empty' };
+const sessionCache = new Map<string, State>();
+function windowKey(range: Range, from?: string, to?: string): string {
+  return range === 'custom' ? `custom:${from ?? ''}~${to ?? ''}` : range;
+}
+
 /**
  * Panel DSS "Phân tích & Dự báo (AI)" trên dashboard admin (Đợt 3 #5+#6).
- * AI phân tích doanh thu → dự báo + insight + khuyến nghị. Đồng bộ với dropdown
- * range của dashboard. Tự ẩn nếu thiếu data/lỗi (charts vẫn chạy bình thường).
+ *
+ * MANUAL TRIGGER: KHÔNG tự gọi AI khi vào dashboard (tốn tài nguyên). Admin bấm
+ * "Phân tích bằng AI" mới gọi. Kết quả NHỚ theo time window trong phiên → đổi
+ * range/quay lại không gọi lại trừ khi bấm lại.
  */
 export function InsightsPanel({ range, from, to }: InsightsPanelProps) {
-  const [data, setData] = useState<Insights | null>(null);
-  const [loading, setLoading] = useState(true);
+  const key = windowKey(range, from, to);
+  const [loading, setLoading] = useState(false);
+  // Bộ đếm để ép re-render sau khi cập nhật sessionCache (cache cấp module).
+  const [, forceRender] = useState(0);
 
-  // Custom range chưa đủ ngày → chưa gọi (tránh phân tích rỗng).
+  // Custom range chưa đủ ngày → chưa cho phân tích.
   const customIncomplete = range === 'custom' && !from && !to;
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    async function load() {
-      if (customIncomplete) {
-        if (!cancelled) {
-          setData(null);
-          setLoading(false);
-        }
-        return;
-      }
-      try {
-        const token = getAccessToken();
-        const qs =
-          range === 'custom'
-            ? new URLSearchParams({ ...(from ? { from } : {}), ...(to ? { to } : {}) }).toString()
-            : `range=${range}`;
-        const res = await fetch(`/api/admin/insights?${qs}`, {
-          headers: { Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-          cache: 'no-store',
-        });
-        const env = res.ok ? await res.json() : null;
-        if (!cancelled) setData(env?.data?.insights ?? null);
-      } catch {
-        if (!cancelled) setData(null);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [range, from, to, customIncomplete]);
+  // Đọc kết quả theo time window hiện tại từ cache (đổi range → key đổi → đọc lại).
+  const cachedForKey = sessionCache.get(key);
 
-  if (loading) {
+  async function handleAnalyze() {
+    setLoading(true);
+    try {
+      const token = getAccessToken();
+      const qs =
+        range === 'custom'
+          ? new URLSearchParams({ ...(from ? { from } : {}), ...(to ? { to } : {}) }).toString()
+          : `range=${range}`;
+      const res = await fetch(`/api/admin/insights?${qs}`, {
+        headers: { Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        cache: 'no-store',
+      });
+      const env = res.ok ? await res.json() : null;
+      const insights: Insights | null = env?.data?.insights ?? null;
+      sessionCache.set(key, insights ? { status: 'success', data: insights } : { status: 'empty' });
+    } catch {
+      sessionCache.set(key, { status: 'empty' });
+    } finally {
+      setLoading(false);
+      forceRender((n) => n + 1);
+    }
+  }
+
+  if (!cachedForKey) {
     return (
-      <div className={styles.panel} aria-busy="true">
+      <div className={styles.panel}>
         <div className={styles.header}>
           <span className={styles.badge}>✨ Phân tích &amp; Dự báo (AI)</span>
         </div>
-        <div className={styles.skeletonLine} />
-        <div className={styles.skeletonLineShort} />
+        <p className={styles.prompt}>
+          AI phân tích doanh thu → dự báo xu hướng + nhận định + khuyến nghị cho khoảng thời gian đang chọn.
+        </p>
+        <button
+          type="button"
+          className={styles.triggerBtn}
+          onClick={handleAnalyze}
+          disabled={loading || customIncomplete}
+        >
+          {loading ? 'Đang phân tích…' : 'Phân tích bằng AI'}
+        </button>
+        {customIncomplete && (
+          <p className={styles.hint}>Chọn khoảng ngày tùy chỉnh trước khi phân tích.</p>
+        )}
       </div>
     );
   }
 
-  if (!data) return null; // thiếu data hoặc lỗi → ẩn panel
+  if (cachedForKey.status === 'empty') {
+    return (
+      <div className={styles.panel}>
+        <div className={styles.header}>
+          <span className={styles.badge}>✨ Phân tích &amp; Dự báo (AI)</span>
+        </div>
+        <p className={styles.prompt}>Chưa đủ dữ liệu bán hàng để AI phân tích cho khoảng này.</p>
+        <button type="button" className={styles.triggerBtn} onClick={handleAnalyze} disabled={loading}>
+          {loading ? 'Đang phân tích…' : 'Thử lại'}
+        </button>
+      </div>
+    );
+  }
 
+  const data = cachedForKey.data;
   const trendIcon = TREND_ICON[data.forecast.trend.toLowerCase()] ?? '📊';
 
   return (

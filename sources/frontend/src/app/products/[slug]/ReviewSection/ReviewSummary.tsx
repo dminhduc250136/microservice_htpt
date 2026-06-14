@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import styles from './ReviewSummary.module.css';
 
 interface Summary {
@@ -12,56 +12,77 @@ interface Summary {
 
 interface ReviewSummaryProps {
   productId: string;
-  /** reviewCount hiện tại — đổi → refetch (cache invalidate theo count). */
+  /** reviewCount hiện tại — đổi → cho phép tóm tắt lại (cache theo count). */
   reviewCount: number;
 }
 
 /**
- * Panel "Tóm tắt từ AI" đầu tab Đánh giá (Đợt 2 #3). Fetch /api/chat/review-summary;
- * tự ẩn (render null) khi: đang tải, lỗi, hoặc chưa đủ review (summary=null). KHÔNG
- * bao giờ chặn phần đánh giá thật bên dưới.
+ * Panel "Tóm tắt từ AI" đầu tab Đánh giá (Đợt 2 #3).
+ *
+ * MANUAL TRIGGER: KHÔNG tự gọi AI khi vào trang (tốn tài nguyên). User bấm nút
+ * "Tóm tắt đánh giá bằng AI" mới gọi. Kết quả NHỚ trong phiên (module cache theo
+ * productId+reviewCount) → chuyển tab / mở lại không gọi lại.
  */
+
+// Cache cấp module — sống qua remount/đổi tab trong cùng phiên trang.
+type State = { status: 'success'; data: Summary } | { status: 'empty' };
+const sessionCache = new Map<string, State>();
+const cacheKey = (productId: string, reviewCount: number) => `${productId}:${reviewCount}`;
+
 export default function ReviewSummary({ productId, reviewCount }: ReviewSummaryProps) {
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [loading, setLoading] = useState(true);
+  const key = cacheKey(productId, reviewCount);
+  const [state, setState] = useState<State | null>(() => sessionCache.get(key) ?? null);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const r = await fetch(
-          `/api/chat/review-summary?productId=${encodeURIComponent(productId)}`,
-          { cache: 'no-store' },
-        );
-        const env = r.ok ? await r.json() : null;
-        if (!cancelled) setSummary(env?.data?.summary ?? null);
-      } catch {
-        if (!cancelled) setSummary(null);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+  async function handleSummarize() {
+    setLoading(true);
+    try {
+      const r = await fetch(
+        `/api/chat/review-summary?productId=${encodeURIComponent(productId)}`,
+        { cache: 'no-store' },
+      );
+      const env = r.ok ? await r.json() : null;
+      const summary: Summary | null = env?.data?.summary ?? null;
+      const next: State = summary ? { status: 'success', data: summary } : { status: 'empty' };
+      sessionCache.set(key, next);
+      setState(next);
+    } catch {
+      const next: State = { status: 'empty' };
+      sessionCache.set(key, next);
+      setState(next);
+    } finally {
+      setLoading(false);
     }
-    load();
-    return () => {
-      cancelled = true;
-    };
-    // reviewCount trong deps: review thay đổi → tóm tắt lại.
-  }, [productId, reviewCount]);
+  }
 
-  if (loading) {
+  // Chưa bấm → hiện nút mời tóm tắt.
+  if (state === null) {
     return (
-      <div className={styles.panel} aria-busy="true">
+      <div className={styles.panel}>
         <div className={styles.header}>
           <span className={styles.badge}>✨ Tóm tắt từ AI</span>
         </div>
-        <div className={styles.skeletonLine} />
-        <div className={styles.skeletonLineShort} />
+        <p className={styles.prompt}>Để AI tổng hợp nhanh điểm mạnh / điểm cần lưu ý từ các đánh giá.</p>
+        <button type="button" className={styles.triggerBtn} onClick={handleSummarize} disabled={loading}>
+          {loading ? 'Đang tóm tắt…' : 'Tóm tắt đánh giá bằng AI'}
+        </button>
       </div>
     );
   }
 
-  if (!summary) return null; // chưa đủ review hoặc lỗi → ẩn panel
+  // Đã bấm nhưng chưa đủ review / lỗi.
+  if (state.status === 'empty') {
+    return (
+      <div className={styles.panel}>
+        <div className={styles.header}>
+          <span className={styles.badge}>✨ Tóm tắt từ AI</span>
+        </div>
+        <p className={styles.prompt}>Chưa đủ đánh giá để AI tóm tắt (cần tối thiểu vài đánh giá).</p>
+      </div>
+    );
+  }
 
+  const summary = state.data;
   return (
     <div className={styles.panel}>
       <div className={styles.header}>
