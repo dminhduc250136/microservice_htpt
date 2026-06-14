@@ -27,4 +27,18 @@ public class UserStatsService {
   public long totalUsers(java.time.Instant from, java.time.Instant to) {
     return userRepo.countInRange(from, to);
   }
+
+  /** Danh sách user đăng ký trong [from, to] (modal "Khách mới"). Cap limit. */
+  @Transactional(readOnly = true)
+  public java.util.List<UserRow> usersInRange(java.time.Instant from, java.time.Instant to, int limit) {
+    int cap = limit <= 0 ? 100 : Math.min(limit, 500);
+    java.util.List<UserRow> rows = new java.util.ArrayList<>();
+    for (var u : userRepo.findInRange(from, to,
+        org.springframework.data.domain.PageRequest.of(0, cap))) {
+      rows.add(new UserRow(u.id(), u.email(), u.fullName(), u.createdAt()));
+    }
+    return rows;
+  }
+
+  public record UserRow(String id, String email, String fullName, java.time.Instant createdAt) {}
 }

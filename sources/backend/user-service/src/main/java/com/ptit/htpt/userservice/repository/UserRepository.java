@@ -4,6 +4,7 @@ import com.ptit.htpt.userservice.domain.UserEntity;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -41,4 +42,13 @@ public interface UserRepository extends JpaRepository<UserEntity, String> {
         AND (cast(:to as timestamp) IS NULL OR u.createdAt <= :to)
       """)
   long countInRange(@Param("from") Instant from, @Param("to") Instant to);
+
+  /** Danh sách user đăng ký trong [from, to], mới nhất trước (modal "Khách mới"). */
+  @Query("""
+      SELECT u FROM UserEntity u
+      WHERE (cast(:from as timestamp) IS NULL OR u.createdAt >= :from)
+        AND (cast(:to as timestamp) IS NULL OR u.createdAt <= :to)
+      ORDER BY u.createdAt DESC
+      """)
+  List<UserEntity> findInRange(@Param("from") Instant from, @Param("to") Instant to, Pageable limit);
 }

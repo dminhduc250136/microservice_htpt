@@ -19,6 +19,7 @@ import { LowStockSection } from '@/components/admin/LowStockSection';
 import { InsightsPanel } from '@/components/admin/InsightsPanel';
 import { CustomerSegmentsPanel } from '@/components/admin/CustomerSegmentsPanel';
 import { RevenueDetailModal } from '@/components/admin/RevenueDetailModal';
+import { DetailListModal, type DetailKind } from '@/components/admin/DetailListModal';
 import {
   fetchRevenueChart,
   fetchTopProducts,
@@ -78,6 +79,7 @@ export default function AdminDashboard() {
   const [orderCard, setOrderCard] = useState<KpiCardState<OrderStats>>({ status: 'loading' });
   const [userCard, setUserCard] = useState<KpiCardState<UserStats>>({ status: 'loading' });
   const [showRevenueDetail, setShowRevenueDetail] = useState(false); // modal chi tiết doanh thu
+  const [detailKind, setDetailKind] = useState<DetailKind | null>(null); // modal danh sách
 
   const loadProduct = useCallback(async () => {
     setProductCard({ status: 'loading' });
@@ -211,6 +213,7 @@ export default function AdminDashboard() {
           state={orderCard}
           renderValue={(d) => String(d.totalOrders)}
           onRetry={loadOrder}
+          onClick={() => setDetailKind('orders')}
         />
         <KpiCard
           label="Giá trị đơn TB"
@@ -227,6 +230,7 @@ export default function AdminDashboard() {
           state={userCard}
           renderValue={(d) => String(d.totalUsers)}
           onRetry={loadUser}
+          onClick={() => setDetailKind('users')}
         />
         <KpiCard
           label="Đơn chờ xử lý"
@@ -235,6 +239,7 @@ export default function AdminDashboard() {
           state={orderCard}
           renderValue={(d) => String(d.pendingOrders)}
           onRetry={loadOrder}
+          onClick={() => setDetailKind('pending')}
         />
         <KpiCard
           label="Sản phẩm mới"
@@ -243,6 +248,7 @@ export default function AdminDashboard() {
           state={productCard}
           renderValue={(d) => String(d.totalProducts)}
           onRetry={loadProduct}
+          onClick={() => setDetailKind('products')}
         />
       </div>
 
@@ -329,6 +335,11 @@ export default function AdminDashboard() {
       {/* Modal chi tiết doanh thu (bấm thẻ Doanh thu) */}
       {showRevenueDetail && (
         <RevenueDetailModal window={statsWindow} onClose={() => setShowRevenueDetail(false)} />
+      )}
+
+      {/* Modal danh sách (đơn / khách mới / SP mới) */}
+      {detailKind && (
+        <DetailListModal kind={detailKind} window={statsWindow} onClose={() => setDetailKind(null)} />
       )}
     </div>
   );

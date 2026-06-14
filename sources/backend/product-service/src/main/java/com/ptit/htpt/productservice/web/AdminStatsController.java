@@ -45,6 +45,18 @@ public class AdminStatsController {
     return ApiResponse.of(200, "Product stats", Map.of("totalProducts", total));
   }
 
+  /** Danh sách SP tạo trong [from, to] (modal "Sản phẩm mới"). */
+  @GetMapping("/recent-list")
+  public ApiResponse<Object> recentList(
+      @RequestParam(value = "from", required = false) String from,
+      @RequestParam(value = "to", required = false) String to,
+      @RequestParam(value = "limit", defaultValue = "100") int limit,
+      @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader) {
+    jwtRoleGuard.requireAdmin(authHeader);
+    return ApiResponse.of(200, "Recent products",
+        Map.of("products", statsService.productsInRange(parseFrom(from), parseTo(to), limit)));
+  }
+
   private static Instant parseFrom(String date) {
     if (date == null || date.isBlank()) {
       return null;

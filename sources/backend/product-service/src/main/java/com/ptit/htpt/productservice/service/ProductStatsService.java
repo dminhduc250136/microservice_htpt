@@ -27,4 +27,20 @@ public class ProductStatsService {
   public long totalProducts(java.time.Instant from, java.time.Instant to) {
     return productRepo.countInRange(from, to);
   }
+
+  /** Danh sách SP tạo trong [from, to] (modal "Sản phẩm mới"). Cap limit. */
+  @Transactional(readOnly = true)
+  public java.util.List<ProductRow> productsInRange(java.time.Instant from, java.time.Instant to, int limit) {
+    int cap = limit <= 0 ? 100 : Math.min(limit, 500);
+    java.util.List<ProductRow> rows = new java.util.ArrayList<>();
+    for (var p : productRepo.findInRange(from, to,
+        org.springframework.data.domain.PageRequest.of(0, cap))) {
+      rows.add(new ProductRow(p.id(), p.name(), p.price(), p.stock(), p.status(),
+          p.thumbnailUrl(), p.createdAt()));
+    }
+    return rows;
+  }
+
+  public record ProductRow(String id, String name, java.math.BigDecimal price, int stock,
+                           String status, String thumbnailUrl, java.time.Instant createdAt) {}
 }
