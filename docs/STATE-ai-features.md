@@ -26,7 +26,8 @@
 | 4 | Gợi ý sản phẩm thông minh (ranking) | 🟢 Dễ | Khách | ✅ | ⭐⭐ (XONG 2026-06-14) |
 | 5 | Dự đoán doanh thu/nhu cầu (DSS admin) | 🟡 TB | Admin | ✅ | ⭐⭐ (XONG 2026-06-13) |
 | 6 | AI Insight + khuyến nghị (DSS admin) | 🟡 TB | Admin | ✅ | ⭐⭐ (XONG 2026-06-13) |
-| 7 | Collaborative Filtering ("mua X cũng mua Y") | 🔴 Khó | Khách | ⬜ | ⭐ |
+| 7 | Collaborative Filtering ("mua X cũng mua Y") | 🔴 Khó | Khách | ✅ | ⭐ (XONG 2026-06-14) |
+| 9 | Phân khúc khách hàng RFM (DSS) | 🟡 TB | Admin | ✅ | ⭐⭐ (XONG 2026-06-14) |
 | 8 | Theo dõi hành vi user (view/wishlist) | 🟡 TB | Hạ tầng | ⬜ | ⭐ (nền cho #7) |
 
 > Nhóm 04 có: #1 (vector search) + #2 (intent) + #5/#6 (DSS). Làm các mục này
@@ -76,11 +77,17 @@
 - **Verify VM**: AI tự phát hiện "32 đơn PENDING cao → rủi ro tồn đọng" + khuyến nghị
   xử lý đơn, tái lập chiến dịch ngày đột biến. Đúng kiểu DSS nhóm 04.
 
-### 7. Collaborative Filtering ⭐
-- **Mục tiêu**: "Khách mua X cũng mua Y" — gợi ý cá nhân hóa từ lịch sử mua.
-- **Cần**: job tính ma trận đồng-mua từ order_items + cache + endpoint. Phức tạp.
-- **Đối tượng**: khách. Data order_items đã đủ.
-- **Trạng thái**: ⬜.
+### 7. Collaborative Filtering ⭐ ✅ HOÀN THÀNH (2026-06-14)
+> PR #64.
+- **Đã làm**: item-based "Khách mua X cũng mua Y" (trang SP, public) + user-based
+  "Gợi ý cho bạn" (trang chủ, login). Tính từ order_items (đồng-mua), thuần SQL.
+- **Đối tượng**: khách. Verify VM: laptop → tai nghe/chuột/bàn phím.
+
+### 9. Phân khúc khách hàng RFM (DSS admin) ⭐⭐ ✅ HOÀN THÀNH (2026-06-14)
+> PR #63 (+ #66 modal chi tiết). Lấp mục 7.6.4 nhóm 04.
+- **Đã làm**: panel RFM trên dashboard — 6 nhóm khách (VIP/Trung thành/.../Ngủ đông)
+  theo Recency/Frequency/Monetary. Bấm nhóm → modal danh sách khách + R/F/M.
+- **Đối tượng**: admin. Thuật toán thuần, KHÔNG gọi AI.
 
 ### 8. Theo dõi hành vi user (view/wishlist) ⭐
 - **Mục tiêu**: lưu lịch sử xem SP, wishlist → nền cho gợi ý cá nhân hóa (#7).
@@ -98,7 +105,8 @@
 | **Đợt 2** | #2 Intent + #3 Review summary | ✅ XONG 2026-06-13. → [DESIGN-dot-2.md](DESIGN-dot-2.md). |
 | **Đợt 3** | #5 + #6 DSS admin | ✅ XONG 2026-06-13. → [DESIGN-dot-3.md](DESIGN-dot-3.md). |
 | **Đợt 4** | #4 Gợi ý SP thông minh | ✅ XONG 2026-06-14 (PR #56). |
-| **Đợt 5** (tùy chọn) | #8 → #7 Behavior + CF | Phức tạp, cần data hành vi trước. Làm nếu còn thời gian. |
+| **Đợt 5** | #7 CF + #9 RFM | ✅ XONG 2026-06-14 (PR #63, #64). + nâng cấp dashboard DSS (#65, #66). |
+| (còn lại) | #8 Behavior tracking | ⬜ tùy chọn — cần bảng view/wishlist + thu thập data trước. |
 
 ---
 
@@ -114,7 +122,14 @@
   "✨ Phân tích & Dự báo (AI)" trên /admin verify thật trên VM: AI ra trend + ước
   tính + insight ("32 đơn PENDING cao") + khuyến nghị. Seed 28 đơn demo (#53) để đủ
   data; fix model do quota (#54). Tái dùng endpoint chart có sẵn, KHÔNG đụng DB.
-- **Còn lại (tùy chọn)**: Đợt 4 #4 Gợi ý SP thông minh, Đợt 5 #7/#8 CF + behavior.
+- **2026-06-14 — Đợt 4 (#4 ranking) + Đợt 5 (#7 CF + #9 RFM) HOÀN THÀNH.** #4 "Sản phẩm
+  liên quan" rank đa tiêu chí. #7 CF "mua X cũng mua Y" (trang SP) + "gợi ý cho bạn"
+  (trang chủ). #9 phân khúc RFM 6 nhóm (dashboard). Tất cả thuần thuật toán, không AI.
+- **2026-06-14 — Nâng cấp dashboard DSS:** custom date range, KPI lọc theo thời gian +
+  thẻ doanh thu/AOV (#65), bấm card xem chi tiết qua modal (#66). Trigger AI thủ công.
+- **Tổng kết:** ĐỦ 3 mảng DSS nhóm 04 (phân tích+phân khúc / dự báo / gợi ý). Còn #8
+  (behavior tracking) tùy chọn.
+- **Tài liệu tổng hợp:** [AI-FEATURES.md](AI-FEATURES.md).
 
 ## GHI CHÚ
 - **Gemini free tier mỗi model cố định CHỈ ~20 req/ngày** (KHÔNG phải 1500). Dùng alias
