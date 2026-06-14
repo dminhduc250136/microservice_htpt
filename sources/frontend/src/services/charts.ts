@@ -70,3 +70,17 @@ export const fetchUserSignups = (w: TimeWindow) =>
 
 export const fetchLowStock = () =>
   httpGet<LowStockItem[]>(`/api/products/admin/charts/low-stock`);
+
+/** Phân khúc khách hàng RFM (DSS admin). */
+export interface SegmentGroup {
+  name: string;
+  description: string;
+  customerCount: number;
+  totalRevenue: number;
+}
+export interface CustomerSegments {
+  totalCustomers: number;
+  segments: SegmentGroup[];
+}
+export const fetchCustomerSegments = () =>
+  httpGet<CustomerSegments>(`/api/orders/admin/charts/customer-segments`);
